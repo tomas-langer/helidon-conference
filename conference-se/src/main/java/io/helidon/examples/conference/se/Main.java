@@ -17,12 +17,31 @@
 package io.helidon.examples.conference.se;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.LogManager;
 
 import io.helidon.config.Config;
 import io.helidon.config.PollingStrategies;
 import io.helidon.metrics.MetricsSupport;
+import io.helidon.security.CompositeProviderFlag;
+import io.helidon.security.CompositeProviderSelectionPolicy;
 import io.helidon.security.Security;
+import io.helidon.security.abac.AbacProvider;
+import io.helidon.security.provider.httpauth.HttpBasicAuthProvider;
+import io.helidon.security.provider.httpauth.UserStore;
+import io.helidon.security.provider.httpsign.HttpSignProvider;
+import io.helidon.security.provider.httpsign.InboundClientDefinition;
+import io.helidon.security.provider.httpsign.SignedHeadersConfig;
+import io.helidon.security.spi.ProviderSelectionPolicy;
+import io.helidon.security.spi.SecurityProvider;
 import io.helidon.security.webserver.WebSecurity;
 import io.helidon.webserver.Routing;
 import io.helidon.webserver.ServerConfiguration;
@@ -42,6 +61,12 @@ import static io.helidon.config.PollingStrategies.regular;
  * Simple Hello World rest application.
  */
 public final class Main {
+    private static final Map<String, UserStore.User> USERS = new HashMap<>();
+
+    static {
+        USERS.put("jack", new MyUser("jack", "jackIsGreat", "admin"));
+        USERS.put("jill", new MyUser("jill", "jillToo", "user"));
+    }
 
     /**
      * Cannot be instantiated.
@@ -60,7 +85,7 @@ public final class Main {
 
         Config config = buildConfig();
 
-        ServerConfiguration.Builder serverConfig = ServerConfiguration.builder(config.get("server"));
+        ServerConfiguration.Builder serverConfig = setupServerConfig(config);
         Routing.Builder routing = Routing.builder();
 
         setupTracing(config, serverConfig, routing);
@@ -71,9 +96,63 @@ public final class Main {
         startServer(config, routing);
     }
 
+    private static ServerConfiguration.Builder setupServerConfig(Config config) throws UnknownHostException {
+        //return ServerConfiguration.builder(config.get("server"));
+
+        return ServerConfiguration.builder()
+                .bindAddress(InetAddress.getLocalHost())
+                .port(8080);
+    }
+
     private static void setupSecurity(Config config, Routing.Builder routing) {
-        Security security = Security.fromConfig(config);
-        routing.register(WebSecurity.from(security, config));
+        //Security security = Security.fromConfig(config);
+        //routing.register(WebSecurity.from(security, config));
+
+        Security security = Security.builder()
+                .providerSelectionPolicy(selectionPolicy())
+                .addProvider(AbacProvider.create())
+                .addProvider(basicAuthentication(), "http-basic-auth")
+                .addProvider(httpSignatures(), "http-signatures")
+                .build();
+
+        routing.register(WebSecurity.from(security));
+        routing.any("/greet/greeting[/{*}]", WebSecurity.authenticate()
+                .rolesAllowed("admin"));
+        routing.any("/greet/jack", WebSecurity.authenticate());
+    }
+
+    private static Function<ProviderSelectionPolicy.Providers, ProviderSelectionPolicy> selectionPolicy() {
+        return CompositeProviderSelectionPolicy.builder()
+                .addAuthenticationProvider("http-signatures", CompositeProviderFlag.OPTIONAL)
+                .addAuthenticationProvider("http-basic-auth")
+                .build();
+    }
+
+    private static SecurityProvider basicAuthentication() {
+        return HttpBasicAuthProvider.builder()
+                .userStore(Main::getUser)
+                .build();
+    }
+
+    private static SecurityProvider httpSignatures() {
+        return HttpSignProvider.builder()
+                .optional(true)
+                .inboundRequiredHeaders(SignedHeadersConfig.builder()
+                                                .config("get",
+                                                        SignedHeadersConfig.HeadersConfig.create(List.of(
+                                                                "date",
+                                                                "(request-target)",
+                                                                "host")))
+                                                .build())
+                .addInbound(InboundClientDefinition.builder("helidon-mp")
+                                    .principalName("MP Service")
+                                    .hmacSecret("badIdeaClearTextPassword!")
+                                    .build())
+                .build();
+    }
+
+    private static Optional<UserStore.User> getUser(String login) {
+        return Optional.ofNullable(USERS.get(login));
     }
 
     private static void setupMetrics(Config config, Routing.Builder routing) {
@@ -155,5 +234,33 @@ public final class Main {
         routing
                 .register(JsonSupport.get())
                 .register("/greet", new GreetService(config));
+    }
+
+    // simplistic user implementation for the purpose of presentation
+    private static class MyUser implements UserStore.User {
+        private String login;
+        private String password;
+        private String role;
+
+        private MyUser(String login, String password, String role) {
+            this.login = login;
+            this.password = password;
+            this.role = role;
+        }
+
+        @Override
+        public Collection<String> getRoles() {
+            return Set.of(role);
+        }
+
+        @Override
+        public String getLogin() {
+            return login;
+        }
+
+        @Override
+        public char[] getPassword() {
+            return password.toCharArray();
+        }
     }
 }
