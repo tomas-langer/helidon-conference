@@ -67,7 +67,7 @@ public final class Main {
         setupMetrics(config, routing);
         setupSecurity(config, routing);
 
-        addRouting(routing);
+        addRouting(config, routing);
         startServer(config, routing);
     }
 
@@ -151,9 +151,9 @@ public final class Main {
      *
      * @return the new instance
      */
-    private static void addRouting(Routing.Builder routing) {
+    private static void addRouting(Config config, Routing.Builder routing) {
         routing
                 .register(JsonSupport.get())
-                .register("/greet", new GreetService());
+                .register("/greet", new GreetService(config));
     }
 }

@@ -46,28 +46,30 @@ import org.eclipse.microprofile.metrics.MetricRegistry;
  */
 
 public class GreetService implements Service {
-
-    /**
-     * This gets config from application.yaml on classpath
-     * and uses "app" section.
-     */
-    private static final Config CONFIG = Config.create().get("app");
-
+    private static final String CONFIG_KEY_GREETING = "app.greeting";
+    private static final String DEFAULT_GREETING = "Ciao";
     /**
      * The config value for the key {@code greeting}.
      */
-    private static String greeting = CONFIG.get("greeting").asString("Ciao");
+    private String greeting;
     private final Counter defaultMessageCounter;
     private final Counter messageCounter;
     private final Counter updateMessageCounter;
 
-    public GreetService() {
+    public GreetService(Config config) {
+        Config greetingConf = config.get(CONFIG_KEY_GREETING);
+        this.greeting = greetingConf.asString(DEFAULT_GREETING);
         RegistryFactory metricsRegistry = RegistryFactory.getRegistryFactory().get();
         MetricRegistry appRegistry = metricsRegistry.getRegistry(MetricRegistry.Type.APPLICATION);
 
         this.defaultMessageCounter = appRegistry.counter("greet.default.counter");
         this.messageCounter = appRegistry.counter("greet.message.counter");
         this.updateMessageCounter = appRegistry.counter("greet.message.update.counter");
+
+        greetingConf.onChange(newConfig -> {
+            greeting = newConfig.asString(greeting);
+            return true;
+        });
     }
 
     /**
