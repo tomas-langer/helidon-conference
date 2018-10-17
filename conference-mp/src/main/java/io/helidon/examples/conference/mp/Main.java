@@ -20,6 +20,9 @@ import java.io.IOException;
 import java.util.logging.LogManager;
 
 import io.helidon.microprofile.server.Server;
+import io.helidon.webserver.zipkin.ZipkinTracerBuilder;
+
+import io.opentracing.util.GlobalTracer;
 
 /**
  * Main method simulating trigger of main method of the server.
@@ -39,7 +42,20 @@ public final class Main {
      * @throws IOException if there are problems reading logging properties
      */
     public static void main(final String[] args) throws IOException {
+        // as we use default HTTP connection for Jersey client, we should set this as we set the Authorization header
+        // when propagating security
+        System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
+
+        setupLogging();
+
+        setupTracing();
+
         startServer();
+    }
+
+    private static void setupTracing() {
+        GlobalTracer.register(ZipkinTracerBuilder.forService("helidon-mp")
+                                      .build());
     }
 
     /**
@@ -56,8 +72,13 @@ public final class Main {
 
         // Server will automatically pick up configuration from
         // microprofile-config.properties
-        Server server = Server.create();
-        server.start();
-        return server;
+        return Server.create()
+                .start();
+    }
+
+    private static void setupLogging() throws IOException {
+        // load logging configuration
+        LogManager.getLogManager().readConfiguration(
+                Main.class.getResourceAsStream("/logging.properties"));
     }
 }

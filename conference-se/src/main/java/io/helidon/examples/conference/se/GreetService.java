@@ -20,10 +20,15 @@ import javax.json.Json;
 import javax.json.JsonObject;
 
 import io.helidon.config.Config;
+import io.helidon.metrics.RegistryFactory;
+import io.helidon.security.SecurityContext;
 import io.helidon.webserver.Routing;
 import io.helidon.webserver.ServerRequest;
 import io.helidon.webserver.ServerResponse;
 import io.helidon.webserver.Service;
+
+import org.eclipse.microprofile.metrics.Counter;
+import org.eclipse.microprofile.metrics.MetricRegistry;
 
 /**
  * A simple service to greet you. Examples:
@@ -52,6 +57,18 @@ public class GreetService implements Service {
      * The config value for the key {@code greeting}.
      */
     private static String greeting = CONFIG.get("greeting").asString("Ciao");
+    private final Counter defaultMessageCounter;
+    private final Counter messageCounter;
+    private final Counter updateMessageCounter;
+
+    public GreetService() {
+        RegistryFactory metricsRegistry = RegistryFactory.getRegistryFactory().get();
+        MetricRegistry appRegistry = metricsRegistry.getRegistry(MetricRegistry.Type.APPLICATION);
+
+        this.defaultMessageCounter = appRegistry.counter("greet.default.counter");
+        this.messageCounter = appRegistry.counter("greet.message.counter");
+        this.updateMessageCounter = appRegistry.counter("greet.message.update.counter");
+    }
 
     /**
      * A service registers itself by updating the routine rules.
@@ -74,13 +91,17 @@ public class GreetService implements Service {
      */
     private void getDefaultMessage(final ServerRequest request,
                                    final ServerResponse response) {
-        String msg = String.format("%s %s!", greeting, "World");
 
-        JsonObject returnObject = Json.createObjectBuilder()
-                .add("message", msg)
-                .build();
-        response.send(returnObject);
+        String user = request.context()
+                .get(SecurityContext.class)
+                .map(SecurityContext::getUserName)
+                .orElse("World");
+
+        sendResponse(response, user);
+
+        defaultMessageCounter.inc();
     }
+
 
     /**
      * Return a greeting message using the name that was provided.
@@ -90,13 +111,15 @@ public class GreetService implements Service {
      */
     private void getMessage(final ServerRequest request,
                             final ServerResponse response) {
-        String name = request.path().param("name");
-        String msg = String.format("%s %s!", greeting, name);
+        String user = request.context()
+                .get(SecurityContext.class)
+                .map(SecurityContext::getUserName)
+                .orElse("Anonymous");
 
-        JsonObject returnObject = Json.createObjectBuilder()
-                .add("message", msg)
-                .build();
-        response.send(returnObject);
+        String name = request.path().param("name");
+
+        sendResponse(response, name + " (security: " + user + ")");
+        messageCounter.inc();
     }
 
     /**
@@ -111,6 +134,16 @@ public class GreetService implements Service {
 
         JsonObject returnObject = Json.createObjectBuilder()
                 .add("greeting", greeting)
+                .build();
+        response.send(returnObject);
+        updateMessageCounter.inc();
+    }
+
+    private void sendResponse(ServerResponse response, String user) {
+        String msg = String.format("%s %s!", greeting, user);
+
+        JsonObject returnObject = Json.createObjectBuilder()
+                .add("message", msg)
                 .build();
         response.send(returnObject);
     }

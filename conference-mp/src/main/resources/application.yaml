@@ -14,37 +14,30 @@
 # limitations under the License.
 #
 
-app:
-  greeting: "Hello"
-
-server:
-  port: 8080
-  host: 0.0.0.0
-
-services:
-  zipkin.host: "localhost"
+# Basic configuration is in microprofile properties
 
 security:
   provider-policy:
     type: "COMPOSITE"
     authentication:
+      - name: "http-basic-auth"
+    outbound:
       - name: "http-signatures"
-        flag: "OPTIONAL"
       - name: "http-basic-auth"
   providers:
     - abac:
     - http-signatures:
-        optional: true
-        sign-headers:
-          - method: "get"
-            always: ["date", "(request-target)", "host"]
-            if-present: []
-        inbound.keys:
-          - key-id: "helidon-mp"
-            principal-name: "MP Service"
-            principal-type: "SERVICE"
-            hmac.secret: "badIdeaClearTextPassword!"
+        outbound:
+          - name: "helidon-se"
+            hosts: ["localhost", "conference-se"]
+            signature:
+              key-id: "helidon-mp"
+              # encrypted with myVerySecureMasterPasswordForConference
+              hmac.secret: "${AES=Qd/wKl5FTOVB4QbZRVP11F+6S7CNJ7LJO7Go2z6rJYBD56JhXdaoBESNFoD4OkURZ5yR1WvMK/rmGSsXpkmJxA==}"
+              sign-headers:
+                - always: ["date", "(request-target)", "host"]
     - http-basic-auth:
+        realm: "conference-helidon"
         users:
           - login: "jack"
             password: "jackIsGreat"
@@ -52,12 +45,3 @@ security:
           - login: "jill"
             password: "jillToo"
             roles: ["user"]
-  web-server:
-    paths:
-      - path: "/greet/greeting[/{*}]"
-        authenticate: true
-        roles-allowed: ["admin"]
-      - path: "/greet/jack"
-        authenticate: true
-
-

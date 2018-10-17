@@ -16,6 +16,9 @@
 
 package io.helidon.examples.conference.mp;
 
+import java.security.Principal;
+
+import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.json.Json;
@@ -25,9 +28,21 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import io.helidon.security.SecurityContext;
+import io.helidon.security.annot.Authenticated;
+import io.helidon.security.jersey.ClientSecurityFeature;
+import io.helidon.webserver.opentracing.OpentracingClientFilter;
+
+import io.opentracing.SpanContext;
+import io.opentracing.util.GlobalTracer;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.glassfish.jersey.server.Uri;
 
 /**
  * A simple JAX-RS resource to greet you. Examples:
@@ -45,12 +60,16 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  */
 @Path("/greet")
 @RequestScoped
+@Authenticated
 public class GreetResource {
+    @SecureTracingClient
+    @Uri("http://localhost:8080/greet")
+    private WebTarget target;
 
     /**
      * The greeting message.
      */
-    private static String greeting = null;
+    private String greeting = null;
 
     /**
      * Using constructor injection to get a configuration property.
@@ -72,16 +91,31 @@ public class GreetResource {
      * @return {@link JsonObject}
      */
     @SuppressWarnings("checkstyle:designforextension")
-    @Path("/")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public JsonObject getDefaultMessage() {
-        String msg = String.format("%s %s!", greeting, "World");
+    @Timed
+    @Counted(name = "greet.default.counter", monotonic = true, absolute = true)
+    public JsonObject getDefaultMessage(@Context SecurityContext context) {
+        String user = context.getUserPrincipal()
+                .map(Principal::getName)
+                .orElse("World");
 
-        JsonObject returnObject = Json.createObjectBuilder()
-                .add("message", msg)
-                .build();
-        return returnObject;
+        return toResponse(user);
+    }
+
+    @GET
+    @Path("/outbound/{name}")
+    @Timed
+    public JsonObject outbound(@PathParam("name") String name,
+                               @Context SecurityContext context,
+                               @Context SpanContext spanContext) {
+        return target.path(name)
+                .request()
+                .header("Host", "localhost:8080")
+                .property(ClientSecurityFeature.PROPERTY_CONTEXT, context)
+                .property(OpentracingClientFilter.TRACER_PROPERTY_NAME, GlobalTracer.get())
+                .property(OpentracingClientFilter.CURRENT_SPAN_CONTEXT_PROPERTY_NAME, spanContext)
+                .get(JsonObject.class);
     }
 
     /**
@@ -94,13 +128,14 @@ public class GreetResource {
     @Path("/{name}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public JsonObject getMessage(@PathParam("name") final String name) {
-        String msg = String.format("%s %s!", greeting, name);
+    @Timed
+    @Counted(name = "greet.message.counter", monotonic = true, absolute = true)
+    public JsonObject getMessage(@PathParam("name") String name, @Context SecurityContext context) {
+        String user = context.getUserPrincipal()
+                .map(Principal::getName)
+                .orElse("Anonymous");
 
-        JsonObject returnObject = Json.createObjectBuilder()
-                .add("message", msg)
-                .build();
-        return returnObject;
+        return toResponse(name + " (security: " + user + ")");
     }
 
     /**
@@ -113,6 +148,9 @@ public class GreetResource {
     @Path("/greeting/{greeting}")
     @PUT
     @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("admin")
+    @Timed
+    @Counted(name = "greet.message.update.counter", monotonic = true, absolute = true)
     public JsonObject updateGreeting(@PathParam("greeting") final String newGreeting) {
         this.greeting = newGreeting;
 
@@ -120,5 +158,13 @@ public class GreetResource {
                 .add("greeting", this.greeting)
                 .build();
         return returnObject;
+    }
+
+    private JsonObject toResponse(String message) {
+        String msg = String.format("%s %s!", greeting, message);
+
+        return Json.createObjectBuilder()
+                .add("message", msg)
+                .build();
     }
 }

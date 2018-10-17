@@ -24,6 +24,8 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
+import io.helidon.config.Config;
+import io.helidon.webserver.Routing;
 import io.helidon.webserver.WebServer;
 
 import org.junit.jupiter.api.AfterAll;
@@ -37,7 +39,7 @@ public class MainTest {
 
     @BeforeAll
     public static void startTheServer() throws Exception {
-        webServer = Main.startServer();
+        webServer = Main.startServer(Config.create(), Routing.builder());
         while (!webServer.isRunning()) {
             Thread.sleep(1 * 1000);
         }
