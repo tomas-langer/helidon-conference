@@ -27,6 +27,15 @@ mvn archetype:generate -DinteractiveMode=false \
     -Dpackage=io.helidon.examples.conference.mp
 ```
 
+## Startup
+To start SE application, just use java -jar, or run it from IDE.
+To start MP application, you need to provide the following system properties to correctly decrypt password from config:
+
+```bash
+-Dsecurity.config.aes.insecure-passphrase=myVerySecureMasterPasswordForConference 
+-Dsecurity.config.require-encryption=false
+```
+
 ## Endpoints
 Each application opens a few endpoints that return JSON messages.
 
