@@ -155,7 +155,7 @@ public final class Main {
         return Optional.ofNullable(USERS.get(login));
     }
 
-    private static void setupMetrics(Config config, Routing.Builder routing) {
+    static void setupMetrics(Config config, Routing.Builder routing) {
         routing.register(MetricsSupport.create());
     }
 
@@ -230,7 +230,7 @@ public final class Main {
      *
      * @return the new instance
      */
-    private static void addRouting(Config config, Routing.Builder routing) {
+    static void addRouting(Config config, Routing.Builder routing) {
         routing
                 .register(JsonSupport.get())
                 .register("/greet", new GreetService(config));

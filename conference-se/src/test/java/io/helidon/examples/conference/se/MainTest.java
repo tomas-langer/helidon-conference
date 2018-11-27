@@ -39,7 +39,11 @@ public class MainTest {
 
     @BeforeAll
     public static void startTheServer() throws Exception {
-        webServer = Main.startServer(Config.create(), Routing.builder());
+        Config config = Config.create();
+        Routing.Builder builder = Routing.builder();
+        Main.setupMetrics(config, builder);
+        Main.addRouting(config, builder);
+        webServer = Main.startServer(config, builder);
         while (!webServer.isRunning()) {
             Thread.sleep(1 * 1000);
         }
@@ -69,7 +73,7 @@ public class MainTest {
         Assertions.assertEquals(200, conn.getResponseCode(), "HTTP response2");
         jsonReader = Json.createReader(conn.getInputStream());
         jsonObject = jsonReader.readObject();
-        Assertions.assertEquals("Hello Joe!", jsonObject.getString("message"),
+        Assertions.assertEquals("Hello Joe (security: Anonymous)!", jsonObject.getString("message"),
                                 "hello Joe message");
 
         conn = getURLConnection("PUT", "/greet/greeting/Hola");
@@ -78,7 +82,7 @@ public class MainTest {
         Assertions.assertEquals(200, conn.getResponseCode(), "HTTP response4");
         jsonReader = Json.createReader(conn.getInputStream());
         jsonObject = jsonReader.readObject();
-        Assertions.assertEquals("Hola Jose!", jsonObject.getString("message"),
+        Assertions.assertEquals("Hola Jose (security: Anonymous)!", jsonObject.getString("message"),
                                 "hola Jose message");
     }
 

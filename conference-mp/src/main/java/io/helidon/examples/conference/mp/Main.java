@@ -65,11 +65,6 @@ public final class Main {
      * @throws IOException if there are problems reading logging properties
      */
     protected static Server startServer() throws IOException {
-
-        // load logging configuration
-        LogManager.getLogManager().readConfiguration(
-                Main.class.getResourceAsStream("/logging.properties"));
-
         // Server will automatically pick up configuration from
         // microprofile-config.properties
         return Server.create()
