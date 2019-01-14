@@ -1,15 +1,15 @@
 Demo - creating an SE and MP service
 ---
 
-#Prerequisites
+# Prerequisites
 
 1. Maven 3.5+
 2. Java 8+
 3. Optional - docker
 
-#Script
+# Script
 
-##Step 1: Create projects
+## Step 1: Create projects
 ```bash
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
@@ -29,7 +29,7 @@ mvn archetype:generate -DinteractiveMode=false \
     -Dpackage=io.helidon.examples.conference.mp
 ```
 
-##Step 2: Sanity check
+## Step 2: Sanity check
  - both projects:
   - `mvn clean package`
   - `java -jar target/conference-se.jar`
@@ -37,7 +37,7 @@ mvn archetype:generate -DinteractiveMode=false \
   - stop process
   - open in IDE
  
-##Step 3: Source code, running in parallel
+## Step 3: Source code, running in parallel
  - Narrator: explanation of sources for both MP and SE
    - SE:
     - Reactive routing
@@ -46,20 +46,23 @@ mvn archetype:generate -DinteractiveMode=false \
     - CDI
     - JAX-RS
     - Config vs. MP Config
+   - Metrics
+   - Health Checks
+   - Tracing
  - modify configuration of MP project to run on a different port (8081)
     - src/main/resources/META-INF/microprofile-config.properties
  
-##Step 4: Configuration sources, change support
+## Step 4: Configuration sources, change support
  - customize configuration (both projects)
   - add "buildConfig" to main classes
-  - add "conf/java2days.yaml" with customized configuration
+  - add "conf/dev-conference-se.yaml" with customized configuration
   - MP: 
-    - buildConifg:
+    - buildConfig:
     ```java
     private static Config buildConfig() {
         return Config.builder()
                 .sources(
-                        file("conf/java2days.yaml")
+                        file("conf/dev-conference-se.yaml")
                                 .pollingStrategy(PollingStrategies::watch)
                                 .optional(),
                         classpath("application.yaml")
@@ -78,7 +81,7 @@ mvn archetype:generate -DinteractiveMode=false \
         private static Config buildConfig() {
             return Config.builder()
                 .sources(
-                        file("conf/java2days.yaml")
+                        file("conf/dev-conference-se.yaml")
                                 .pollingStrategy(PollingStrategies::watch)
                                 .optional(),
                         classpath("application.yaml")
@@ -86,17 +89,14 @@ mvn archetype:generate -DinteractiveMode=false \
                 .build();
         }
     ```
-    - add parameter to method createRouting(config) and to constructor of GreetService
-    - remove CONFIG
-    - change greeting to instance field (remove static)
     - add
     `private final Supplier<String> greetingSupplier;`
-    - assign values to these fields in the new constructor
+    - assign values to the field in the new constructor
     - modify getDefaultMessage:
       `String msg = String.format("%s (%s) %s!", greetingSupplier.get(), greeting, "World");`
   - Modify the configuration and see the result
   
-##Step 5: Metrics
+## Step 5: Metrics
  - MP already has metrics enabled (see http://localhost:8081/metrics)
     - add a metric annotation to default message
     ```java
@@ -109,8 +109,8 @@ mvn archetype:generate -DinteractiveMode=false \
     - add metric support to dependencies:
     ```xml
     <dependency>
-        <groupId>io.helidon.microprofile.metrics</groupId>
-        <artifactId>helidon-metrics-se</artifactId>
+        <groupId>io.helidon.metrics</groupId>
+        <artifactId>helidon-metrics</artifactId>
     </dependency>
     ```
     - add metric support to routing builder:
@@ -129,7 +129,7 @@ mvn archetype:generate -DinteractiveMode=false \
     - show other metrics (vendor, base)
     - show json access
 
-##Step 6: MP Health
+## Step 6: Health checks
  - works out of the box 
  - see http://localhost:8081/health
  - built-in healtchecks can be disabled:
@@ -171,8 +171,33 @@ mvn archetype:generate -DinteractiveMode=false \
  - update message to "Hello":
    `curl -i -X PUT -H "Content-Type: application/json" -d '{}' http://localhost:8081/greet/greeting/Hello`
  - refresh healthchecks (it should be UP)
+ 
+### SE Health checks
+Add health check to module:
+```xml
+<dependency>
+    <groupId>io.helidon.health</groupId>
+    <artifactId>helidon-health</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.helidon.health</groupId>
+    <artifactId>helidon-health-checks</artifactId>
+</dependency>
+```
 
-##Step 7: Connect the services
+And configure `HealthSupport`:
+```java
+routing.register(HealthSupport.builder()
+     .config(config.get("health")) // support for exclusions and modification of context root
+     .add(HealthChecks.healthChecks()) // built-in health checks
+     .add(() -> HealthCheckResponse.named("custom") // a custom health check
+             .up()
+             .withData("timestamp", System.currentTimeMillis())
+             .build())
+     .build());
+```
+
+## Step 7: Connect the services
  - add a web target to the GreetResource of MP service:
     ```java
     @Uri("http://localhost:8080/greet")
@@ -190,9 +215,9 @@ mvn archetype:generate -DinteractiveMode=false \
          }
      ```
  - now we can try that all this works:
-   http://localhost:8081/greet/outbound/Java2Days
+   http://localhost:8081/greet/outbound/jack
    
-##Step 8: If time permits
+## Step 8: If time permits
 - security
   - http basic with identity propagation
   - http signatures

@@ -123,8 +123,6 @@ public final class Main {
         routing.any("/greet/jack", WebSecurity.authenticate());
     }
 
-    x
-
     private static Function<ProviderSelectionPolicy.Providers, ProviderSelectionPolicy> selectionPolicy() {
         return CompositeProviderSelectionPolicy.builder()
                 .addAuthenticationProvider("http-signatures", CompositeProviderFlag.OPTIONAL)
