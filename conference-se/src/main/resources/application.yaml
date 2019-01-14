@@ -17,12 +17,15 @@
 app:
   greeting: "Hello"
 
+health:
+  exclude: "heapMemory"
+
+tracing:
+  service: "helidon-se"
+
 server:
   port: 8080
   host: 0.0.0.0
-
-services:
-  zipkin.host: "localhost"
 
 security:
   provider-policy:

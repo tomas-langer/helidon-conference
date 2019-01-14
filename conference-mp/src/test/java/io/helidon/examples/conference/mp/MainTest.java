@@ -16,8 +16,6 @@
 
 package io.helidon.examples.conference.mp;
 
-import javax.enterprise.inject.se.SeContainer;
-import javax.enterprise.inject.spi.CDI;
 import javax.json.JsonObject;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -27,6 +25,7 @@ import javax.ws.rs.core.Response;
 
 import io.helidon.microprofile.server.Server;
 
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -42,27 +41,30 @@ class MainTest {
 
     @AfterAll
     static void destroyClass() {
-        CDI<Object> current = CDI.current();
-        ((SeContainer) current).close();
+        server.stop();
     }
 
     @Test
     void testHelloWorld() {
+        HttpAuthenticationFeature basicAuth = HttpAuthenticationFeature.basicBuilder()
+                .credentials("jack", "jackIsGreat")
+                .build();
 
         Client client = ClientBuilder.newClient();
+        client.register(basicAuth);
 
         JsonObject jsonObject = client
                 .target(getConnectionString("/greet"))
                 .request()
                 .get(JsonObject.class);
-        Assertions.assertEquals("Hello World!", jsonObject.getString("message"),
+        Assertions.assertEquals("Hello jack!", jsonObject.getString("message"),
                                 "default message");
 
         jsonObject = client
                 .target(getConnectionString("/greet/Joe"))
                 .request()
                 .get(JsonObject.class);
-        Assertions.assertEquals("Hello Joe!", jsonObject.getString("message"),
+        Assertions.assertEquals("Hello Joe (security: jack)!", jsonObject.getString("message"),
                                 "hello Joe message");
 
         Response r = client
@@ -75,11 +77,11 @@ class MainTest {
                 .target(getConnectionString("/greet/Jose"))
                 .request()
                 .get(JsonObject.class);
-        Assertions.assertEquals("Hola Jose!", jsonObject.getString("message"),
+        Assertions.assertEquals("Hola Jose (security: jack)!", jsonObject.getString("message"),
                                 "hola Jose message");
     }
 
     private String getConnectionString(String path) {
-        return "http://localhost:" + server.getPort() + path;
+        return "http://localhost:" + server.port() + path;
     }
 }

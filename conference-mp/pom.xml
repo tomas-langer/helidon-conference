@@ -123,62 +123,37 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>io.helidon.webserver</groupId>
-            <artifactId>helidon-webserver-jersey</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.helidon.microprofile</groupId>
             <artifactId>helidon-microprofile-security</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.helidon.security</groupId>
-                    <artifactId>helidon-security-bundle</artifactId>
-                </exclusion>
-                <exclusion>
-                    <!-- causes mayhem with java 11 - and it is not needed -->
-                    <groupId>org.glassfish.jersey.media</groupId>
-                    <artifactId>jersey-media-jaxb</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.helidon.security</groupId>
-            <artifactId>helidon-security-provider-http-signature</artifactId>
+            <groupId>io.helidon.security.providers</groupId>
+            <artifactId>helidon-security-providers-http-sign</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.helidon.security</groupId>
-            <artifactId>helidon-security-provider-http-auth</artifactId>
+            <groupId>io.helidon.security.providers</groupId>
+            <artifactId>helidon-security-providers-http-auth</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.helidon.security</groupId>
-            <artifactId>helidon-security-provider-abac</artifactId>
-            <exclusions>
-                <exclusion>
-                    <!-- causes mayhem with java 11 - and it is not needed -->
-                    <groupId>org.glassfish.jersey.media</groupId>
-                    <artifactId>jersey-media-jaxb</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>io.helidon.security.providers</groupId>
+            <artifactId>helidon-security-providers-abac</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.helidon.webserver</groupId>
-            <artifactId>helidon-webserver-zipkin</artifactId>
+            <groupId>io.helidon.tracing</groupId>
+            <artifactId>helidon-tracing-zipkin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.helidon.microprofile.tracing</groupId>
+            <artifactId>helidon-microprofile-tracing</artifactId>
         </dependency>
         <dependency>
             <groupId>io.helidon.microprofile.metrics</groupId>
-            <artifactId>helidon-microprofile-metrics-cdi</artifactId>
-            <exclusions>
-                <!-- github issue #116 -->
-                <exclusion>
-                    <groupId>javax.enterprise</groupId>
-                    <artifactId>cdi-api</artifactId>
-                </exclusion>
-            </exclusions>
+            <artifactId>helidon-microprofile-metrics</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.helidon.microprofile.health</groupId>
-            <artifactId>helidon-microprofile-health-checks</artifactId>
+            <artifactId>helidon-microprofile-health</artifactId>
             <version>${helidon.version}</version>
         </dependency>
         <dependency>

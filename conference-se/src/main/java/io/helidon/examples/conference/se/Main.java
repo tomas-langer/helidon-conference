@@ -30,32 +30,33 @@ import java.util.logging.LogManager;
 
 import io.helidon.config.Config;
 import io.helidon.config.PollingStrategies;
+import io.helidon.health.HealthSupport;
+import io.helidon.health.checks.HealthChecks;
 import io.helidon.metrics.MetricsSupport;
 import io.helidon.security.CompositeProviderFlag;
 import io.helidon.security.CompositeProviderSelectionPolicy;
 import io.helidon.security.Security;
-import io.helidon.security.abac.AbacProvider;
-import io.helidon.security.provider.httpauth.HttpBasicAuthProvider;
-import io.helidon.security.provider.httpauth.UserStore;
-import io.helidon.security.provider.httpsign.HttpSignProvider;
-import io.helidon.security.provider.httpsign.InboundClientDefinition;
-import io.helidon.security.provider.httpsign.SignedHeadersConfig;
+import io.helidon.security.integration.webserver.WebSecurity;
+import io.helidon.security.providers.abac.AbacProvider;
+import io.helidon.security.providers.httpauth.HttpBasicAuthProvider;
+import io.helidon.security.providers.httpauth.UserStore;
+import io.helidon.security.providers.httpsign.HttpSignProvider;
+import io.helidon.security.providers.httpsign.InboundClientDefinition;
+import io.helidon.security.providers.httpsign.SignedHeadersConfig;
 import io.helidon.security.spi.ProviderSelectionPolicy;
 import io.helidon.security.spi.SecurityProvider;
-import io.helidon.security.webserver.WebSecurity;
+import io.helidon.tracing.TracerBuilder;
 import io.helidon.webserver.Routing;
 import io.helidon.webserver.ServerConfiguration;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.json.JsonSupport;
-import io.helidon.webserver.zipkin.ZipkinTracerBuilder;
 
-import io.opentracing.util.GlobalTracer;
-
-import static java.time.Duration.ofSeconds;
+import org.eclipse.microprofile.health.HealthCheckResponse;
 
 import static io.helidon.config.ConfigSources.classpath;
 import static io.helidon.config.ConfigSources.file;
 import static io.helidon.config.PollingStrategies.regular;
+import static java.time.Duration.ofSeconds;
 
 /**
  * Simple Hello World rest application.
@@ -88,9 +89,10 @@ public final class Main {
         ServerConfiguration.Builder serverConfig = setupServerConfig(config);
         Routing.Builder routing = Routing.builder();
 
-        setupTracing(config, serverConfig, routing);
+        setupTracing(config, serverConfig);
         setupMetrics(config, routing);
         setupSecurity(config, routing);
+        setupHealth(config, routing);
 
         addRouting(config, routing);
         startServer(config, routing);
@@ -105,8 +107,8 @@ public final class Main {
     }
 
     private static void setupSecurity(Config config, Routing.Builder routing) {
-        //Security security = Security.fromConfig(config);
-        //routing.register(WebSecurity.from(security, config));
+        //Security security = Security.create(config);
+        //routing.register(WebSecurity.create(security, config));
 
         Security security = Security.builder()
                 .providerSelectionPolicy(selectionPolicy())
@@ -115,11 +117,13 @@ public final class Main {
                 .addProvider(httpSignatures(), "http-signatures")
                 .build();
 
-        routing.register(WebSecurity.from(security));
+        routing.register(WebSecurity.create(security));
         routing.any("/greet/greeting[/{*}]", WebSecurity.authenticate()
                 .rolesAllowed("admin"));
         routing.any("/greet/jack", WebSecurity.authenticate());
     }
+
+    x
 
     private static Function<ProviderSelectionPolicy.Providers, ProviderSelectionPolicy> selectionPolicy() {
         return CompositeProviderSelectionPolicy.builder()
@@ -155,21 +159,26 @@ public final class Main {
         return Optional.ofNullable(USERS.get(login));
     }
 
+    static void setupHealth(Config config, Routing.Builder routing) {
+        routing.register(HealthSupport.builder()
+                                 .config(config.get("health"))
+                                 .add(HealthChecks.healthChecks())
+                                 .add(() -> HealthCheckResponse.named("custom")
+                                         .up()
+                                         .withData("timestamp", System.currentTimeMillis())
+                                         .build())
+                                 .build());
+    }
+
     static void setupMetrics(Config config, Routing.Builder routing) {
         routing.register(MetricsSupport.create());
     }
 
     private static void setupTracing(Config config,
-                                     ServerConfiguration.Builder serverConfig,
-                                     Routing.Builder routing) {
-        config.get("services.zipkin.host")
-                .asOptional(String.class)
-                .map(host -> ZipkinTracerBuilder.forService("helidon-se")
-                        .zipkinHost(host)
-                        .build())
-                .ifPresent(GlobalTracer::register);
-
-        serverConfig.tracer(GlobalTracer.get());
+                                     ServerConfiguration.Builder serverConfig) {
+        serverConfig.tracer(
+                TracerBuilder.create(config.get("tracing"))
+                        .buildAndRegister());
     }
 
     private static Config buildConfig() {
@@ -208,7 +217,7 @@ public final class Main {
 
         // Get webserver config from the "server" section of application.yaml
         ServerConfiguration serverConfig =
-                ServerConfiguration.fromConfig(config.get("server"));
+                ServerConfiguration.create(config.get("server"));
 
         WebServer server = WebServer.create(serverConfig, routing);
 
@@ -232,15 +241,15 @@ public final class Main {
      */
     static void addRouting(Config config, Routing.Builder routing) {
         routing
-                .register(JsonSupport.get())
+                .register(JsonSupport.create())
                 .register("/greet", new GreetService(config));
     }
 
     // simplistic user implementation for the purpose of presentation
-    private static class MyUser implements UserStore.User {
-        private String login;
-        private String password;
-        private String role;
+    private static final class MyUser implements UserStore.User {
+        private final String login;
+        private final String password;
+        private final String role;
 
         private MyUser(String login, String password, String role) {
             this.login = login;
@@ -249,17 +258,17 @@ public final class Main {
         }
 
         @Override
-        public Collection<String> getRoles() {
+        public Collection<String> roles() {
             return Set.of(role);
         }
 
         @Override
-        public String getLogin() {
+        public String login() {
             return login;
         }
 
         @Override
-        public char[] getPassword() {
+        public char[] password() {
             return password.toCharArray();
         }
     }

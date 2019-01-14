@@ -58,7 +58,7 @@ public class GreetService implements Service {
 
     public GreetService(Config config) {
         Config greetingConf = config.get(CONFIG_KEY_GREETING);
-        this.greeting = greetingConf.asString(DEFAULT_GREETING);
+        this.greeting = greetingConf.asString().orElse(DEFAULT_GREETING);
         RegistryFactory metricsRegistry = RegistryFactory.getRegistryFactory().get();
         MetricRegistry appRegistry = metricsRegistry.getRegistry(MetricRegistry.Type.APPLICATION);
 
@@ -67,8 +67,7 @@ public class GreetService implements Service {
         this.updateMessageCounter = appRegistry.counter("greet.message.update.counter");
 
         greetingConf.onChange(newConfig -> {
-            greeting = newConfig.asString(greeting);
-            return true;
+            greeting = newConfig.asString().orElse(greeting);
         });
     }
 
@@ -96,7 +95,7 @@ public class GreetService implements Service {
 
         String user = request.context()
                 .get(SecurityContext.class)
-                .map(SecurityContext::getUserName)
+                .map(SecurityContext::userName)
                 .orElse("World");
 
         sendResponse(response, user);
@@ -115,7 +114,7 @@ public class GreetService implements Service {
                             final ServerResponse response) {
         String user = request.context()
                 .get(SecurityContext.class)
-                .map(SecurityContext::getUserName)
+                .map(SecurityContext::userName)
                 .orElse("Anonymous");
 
         String name = request.path().param("name");

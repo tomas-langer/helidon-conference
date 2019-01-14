@@ -20,9 +20,6 @@ import java.io.IOException;
 import java.util.logging.LogManager;
 
 import io.helidon.microprofile.server.Server;
-import io.helidon.webserver.zipkin.ZipkinTracerBuilder;
-
-import io.opentracing.util.GlobalTracer;
 
 /**
  * Main method simulating trigger of main method of the server.
@@ -48,14 +45,7 @@ public final class Main {
 
         setupLogging();
 
-        setupTracing();
-
         startServer();
-    }
-
-    private static void setupTracing() {
-        GlobalTracer.register(ZipkinTracerBuilder.forService("helidon-mp")
-                                      .build());
     }
 
     /**

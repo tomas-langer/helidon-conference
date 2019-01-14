@@ -16,6 +16,12 @@
 
 # Basic configuration is in microprofile properties
 
+tracing:
+  service: "helidon-mp"
+
+health:
+  exclude: "heapMemory"
+
 security:
   provider-policy:
     type: "COMPOSITE"
