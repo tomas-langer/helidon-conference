@@ -10,7 +10,7 @@ plugin management is unified in parent project).
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-se \
-    -DarchetypeVersion=0.10.5 \
+    -DarchetypeVersion=0.11.0 \
     -DgroupId=io.helidon.examples \
     -DartifactId=conference-se \
     -Dpackage=io.helidon.examples.conference.se
@@ -21,7 +21,7 @@ mvn archetype:generate -DinteractiveMode=false \
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-mp \
-    -DarchetypeVersion=0.10.5 \
+    -DarchetypeVersion=0.11.0 \
     -DgroupId=io.helidon.examples \
     -DartifactId=conference-mp \
     -Dpackage=io.helidon.examples.conference.mp
