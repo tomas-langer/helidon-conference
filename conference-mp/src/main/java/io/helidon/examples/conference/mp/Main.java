@@ -19,7 +19,12 @@ package io.helidon.examples.conference.mp;
 import java.io.IOException;
 import java.util.logging.LogManager;
 
+import io.helidon.config.Config;
+import io.helidon.config.PollingStrategies;
 import io.helidon.microprofile.server.Server;
+
+import static io.helidon.config.ConfigSources.classpath;
+import static io.helidon.config.ConfigSources.file;
 
 /**
  * Main method simulating trigger of main method of the server.
@@ -57,7 +62,9 @@ public final class Main {
     protected static Server startServer() throws IOException {
         // Server will automatically pick up configuration from
         // microprofile-config.properties
-        return Server.create()
+        return Server.builder()
+                .config(buildConfig())
+                .build()
                 .start();
     }
 
@@ -65,5 +72,17 @@ public final class Main {
         // load logging configuration
         LogManager.getLogManager().readConfiguration(
                 Main.class.getResourceAsStream("/logging.properties"));
+    }
+
+    private static Config buildConfig() {
+        return Config.builder()
+                .sources(
+                        file("conf/dev-conference-mp.yaml")
+                                .pollingStrategy(PollingStrategies::watch)
+                                .optional(),
+                        classpath("application.yaml")
+                                .optional(),
+                        classpath("META-INF/microprofile-config.properties"))
+                .build();
     }
 }

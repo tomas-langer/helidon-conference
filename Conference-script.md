@@ -62,7 +62,7 @@ mvn archetype:generate -DinteractiveMode=false \
     private static Config buildConfig() {
         return Config.builder()
                 .sources(
-                        file("conf/dev-conference-se.yaml")
+                        file("conf/dev-conference-mp.yaml")
                                 .pollingStrategy(PollingStrategies::watch)
                                 .optional(),
                         classpath("application.yaml")
@@ -70,6 +70,13 @@ mvn archetype:generate -DinteractiveMode=false \
                         classpath("META-INF/microprofile-config.properties"))
                 .build();
     }
+    ```
+    - change server startup to:
+    ```java
+        return Server.builder()
+                        .config(buildConfig())
+                        .build()
+                        .start();
     ```
     - add parameter to resource (`io.helidon.config.Config`)
     - use a supplier
