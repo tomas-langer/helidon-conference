@@ -94,9 +94,9 @@ mvn archetype:generate -DinteractiveMode=false \
     ```
     - add
     `private final Supplier<String> greetingSupplier;`
-    - assign values to the field in the new constructor
-    - modify getDefaultMessage:
-      `String msg = String.format("%s (%s) %s!", greetingSupplier.get(), greeting, "World");`
+    - assign value to the field in the new constructor
+    - modify sendResponse():
+      `String msg = String.format("%s (%s) %s!", greetingSupplier.get(), greeting, name);`
   - Modify the configuration and see the result
   
 ## Step 5: Metrics

@@ -16,6 +16,8 @@
 
 package io.helidon.examples.conference.se;
 
+import java.util.function.Supplier;
+
 import javax.json.Json;
 import javax.json.JsonObject;
 
@@ -56,6 +58,8 @@ public class GreetService implements Service {
     private final Counter messageCounter;
     private final Counter updateMessageCounter;
 
+    private final Supplier<String> greetingSupplier;
+
     public GreetService(Config config) {
         Config greetingConf = config.get(CONFIG_KEY_GREETING);
         this.greeting = greetingConf.asString().orElse(DEFAULT_GREETING);
@@ -66,9 +70,7 @@ public class GreetService implements Service {
         this.messageCounter = appRegistry.counter("greet.message.counter");
         this.updateMessageCounter = appRegistry.counter("greet.message.update.counter");
 
-        greetingConf.onChange(newConfig -> {
-            greeting = newConfig.asString().orElse(greeting);
-        });
+        greetingSupplier = greetingConf.asString().supplier(DEFAULT_GREETING);
     }
 
     /**
@@ -140,8 +142,8 @@ public class GreetService implements Service {
         updateMessageCounter.inc();
     }
 
-    private void sendResponse(ServerResponse response, String user) {
-        String msg = String.format("%s %s!", greeting, user);
+    private void sendResponse(ServerResponse response, String name) {
+        String msg = String.format("%s (%s) %s!", greetingSupplier.get(), greeting, name);
 
         JsonObject returnObject = Json.createObjectBuilder()
                 .add("message", msg)
