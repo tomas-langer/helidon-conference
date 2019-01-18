@@ -95,6 +95,7 @@ mvn archetype:generate -DinteractiveMode=false \
     - add
     `private final Supplier<String> greetingSupplier;`
     - assign value to the field in the new constructor
+    `greetingConf.asString().supplier(DEFAULT_GREETING);`
     - modify sendResponse():
       `String msg = String.format("%s (%s) %s!", greetingSupplier.get(), greeting, name);`
   - Modify the configuration and see the result

@@ -222,7 +222,7 @@ public final class Main {
         // Start the server and print some info.
         server.start().thenAccept(ws -> {
             System.out.println(
-                    "WEB server is up! http://localhost:" + ws.port());
+                    "WEB server is up! http://localhost:" + ws.port() + "/greet");
         });
 
         // Server threads are not demon. NO need to block. Just react.
