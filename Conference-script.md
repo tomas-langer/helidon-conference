@@ -78,10 +78,6 @@ mvn archetype:generate -DinteractiveMode=false \
                         .build()
                         .start();
     ```
-    - add parameter to resource (`io.helidon.config.Config`)
-    - use a supplier
-    - return both the value from supplier and provider (method createResponse):
-      `String msg = String.format("%s (%s) %s!", messageSupplier.get(), greetingProvider.getMessage(), who);`
   - SE:
     - buildConfig:
     ```java
