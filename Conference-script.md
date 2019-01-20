@@ -110,14 +110,14 @@ mvn archetype:generate -DinteractiveMode=false \
     - see http://localhost:8081/metrics/application/greet.default.counter
     - see http://localhost:8081/metrics/application/io.helidon.examples.conference.mp.GreetResource.getDefaultMessage
  - in SE we need to add them - no magic :)
-    - add metric support to dependencies:
+    - add metric support to dependencies (already in the source code):
     ```xml
     <dependency>
         <groupId>io.helidon.metrics</groupId>
         <artifactId>helidon-metrics</artifactId>
     </dependency>
     ```
-    - add metric support to routing builder:
+    - add metric support to routing builder (already in the source code):
     `.register(MetricsSupport.create())`
     - add metric support to GreetService, constructor:
     ```java
@@ -134,9 +134,10 @@ mvn archetype:generate -DinteractiveMode=false \
     - show json access
 
 ## Step 6: Health checks
+### MP Health checks
  - works out of the box 
  - see http://localhost:8081/health
- - built-in healtchecks can be disabled:
+ - built-in healtchecks can be disabled (already in source code):
    ```xml
    <dependency>
        <groupId>io.helidon.microprofile.bundles</groupId>
@@ -177,7 +178,7 @@ mvn archetype:generate -DinteractiveMode=false \
  - refresh healthchecks (it should be UP)
  
 ### SE Health checks
-Add health check to module:
+Add health check to module (already in source code):
 ```xml
 <dependency>
     <groupId>io.helidon.health</groupId>
@@ -189,11 +190,11 @@ Add health check to module:
 </dependency>
 ```
 
-And configure `HealthSupport`:
+Modify configuration of `HealthSupport`:
 ```java
-routing.register(HealthSupport.builder()
-     .config(config.get("health")) // support for exclusions and modification of context root
+HealthSupport health = HealthSupport.builder()
      .add(HealthChecks.healthChecks()) // built-in health checks
+     .config(config.get("health")) // support for exclusions and modification of context root
      .add(() -> HealthCheckResponse.named("custom") // a custom health check
              .up()
              .withData("timestamp", System.currentTimeMillis())
@@ -205,6 +206,7 @@ routing.register(HealthSupport.builder()
  - add a web target to the GreetResource of MP service:
     ```java
     @Uri("http://localhost:8080/greet")
+    @SecureClient
     private WebTarget target;
     ```
  - add a new method that calls the SE service:
