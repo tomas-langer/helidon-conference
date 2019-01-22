@@ -65,6 +65,7 @@ public class GreetResource {
      * The greeting message provider.
      */
     private final GreetingProvider greetingProvider;
+
     @SecureClient
     @Uri("http://localhost:8080/greet")
     private WebTarget target;

@@ -92,6 +92,8 @@ mvn archetype:generate -DinteractiveMode=false \
                 .build();
         }
     ```
+    - assign it in startServer() method to config
+    - update `GreetService`:
     - add
     `private final Supplier<String> greetingSupplier;`
     - assign value to the field in the new constructor
