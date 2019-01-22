@@ -154,6 +154,15 @@ mvn archetype:generate -DinteractiveMode=false \
    ```
  - add a custom healthcheck
      ```java
+     package io.helidon.examples.conference.mp;
+     
+     import javax.enterprise.context.ApplicationScoped;
+     import javax.inject.Inject;
+     
+     import org.eclipse.microprofile.health.Health;
+     import org.eclipse.microprofile.health.HealthCheck;
+     import org.eclipse.microprofile.health.HealthCheckResponse;
+     
      @Health
      @ApplicationScoped
      public class GreetHealthcheck implements HealthCheck {

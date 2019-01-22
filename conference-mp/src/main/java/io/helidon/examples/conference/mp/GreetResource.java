@@ -38,7 +38,7 @@ import io.helidon.security.annotations.Authenticated;
 import io.helidon.security.integration.jersey.ClientSecurityFeature;
 import io.helidon.security.integration.jersey.SecureClient;
 
-import io.opentracing.SpanContext;
+import org.eclipse.microprofile.faulttolerance.Fallback;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.glassfish.jersey.server.Uri;
@@ -103,13 +103,22 @@ public class GreetResource {
     @Path("/outbound/{name}")
     @Timed
     public JsonObject outbound(@PathParam("name") String name,
-                               @Context SecurityContext context,
-                               @Context SpanContext spanContext) {
+                               @Context SecurityContext context) {
+
+        return callBackend(name, context);
+    }
+
+    @Fallback(fallbackMethod = "onFailureBackend")
+    private JsonObject callBackend(String name, SecurityContext context) {
         return target.path(name)
                 .request()
                 .header("Host", "localhost:8080")
                 .property(ClientSecurityFeature.PROPERTY_CONTEXT, context)
                 .get(JsonObject.class);
+    }
+
+    public JsonObject onFailureBackend(String name, SecurityContext context) {
+        return Json.createObjectBuilder().add("Failed", name).build();
     }
 
     /**
