@@ -174,9 +174,12 @@ public final class Main {
 
     private static void setupTracing(Config config,
                                      ServerConfiguration.Builder serverConfig) {
-        serverConfig.tracer(
-                TracerBuilder.create(config.get("tracing"))
-                        .buildAndRegister());
+        serverConfig.tracer(TracerBuilder.create("helidon-se")
+                                    .buildAndRegister());
+
+        //serverConfig.tracer(
+        //        TracerBuilder.create(config.get("tracing"))
+        //                .buildAndRegister());
     }
 
     private static Config buildConfig() {

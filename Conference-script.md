@@ -234,10 +234,83 @@ HealthSupport health = HealthSupport.builder()
  - now we can try that all this works:
    http://localhost:8081/greet/outbound/jack
    
-## Step 8: If time permits
+## Step 8: Tracing
+
+Helidon has an integration with Zipkin tracer. To start the tracer
+ you can use docker:
+`docker run -d -p 9411:9411 openzipkin/zipkin`
+
+This will start the Zipkin tracer on `http://localhost:9411` - this is
+also the default configuration that Helidon expects.
+
+Once the MP service is integrated with Zipkin, it will
+automatically propagate the Zipkin headers to connect the traces
+of MP and SE service.
+
+You can check the progress on `http://localhost:9411/zipkin/`
+
+### Tracing in MP
+
+Add the following dependencies to your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>io.helidon.microprofile.tracing</groupId>
+    <artifactId>helidon-microprofile-tracing</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.helidon.tracing</groupId>
+    <artifactId>helidon-tracing-zipkin</artifactId>
+</dependency>
+```
+
+Configure the service name in a property file:
+`tracing.service=helidon-mp`
+
+### Tracing in SE
+
+Add the following dependency to your `pom.xml`:
+```xml
+<dependency>
+    <groupId>io.helidon.tracing</groupId>
+    <artifactId>helidon-tracing-zipkin</artifactId>
+</dependency>
+```
+
+Register the tracer with webserver:
+```java
+ServerConfiguration serverConfig =
+                ServerConfiguration.builder(config.get("server"))
+                        .tracer(TracerBuilder.create("helidon-se")
+                                        .buildAndRegister())
+                        .build();
+```
+
+## Step 9: Fault Tolerance
+
+Shutdown the SE service.
+
+Try invoking the `/greet/outbound` endpoint - you should get an internal server error.
+
+Add annotation to the method `outbound` in `GreetResource.java`:
+`@Fallback(fallbackMethod = "onFailureOutbound")`
+
+And create the fallback method:
+```java
+public JsonObject onFailureOutbound(String name, SecurityContext context) {
+    return Json.createObjectBuilder().add("Failed", name).build();
+}
+```
+
+Validate that application works as expected when both services are running.
+
+Shutdown the SE service.
+
+Try again the `/greet/outbound` endpoint - you should see
+ the "Failed" message instead of an internal server error.
+
+## Step 10: Security (If time permits)
 - security
   - http basic with identity propagation
   - http signatures
-- tracing
-  - docker (zipkin)
-  - custom span
+

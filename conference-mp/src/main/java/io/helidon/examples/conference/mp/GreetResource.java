@@ -102,22 +102,20 @@ public class GreetResource {
     @GET
     @Path("/outbound/{name}")
     @Timed
+    @Fallback(fallbackMethod = "onFailureOutbound")
     public JsonObject outbound(@PathParam("name") String name,
                                @Context SecurityContext context) {
 
-        return callBackend(name, context);
-    }
-
-    @Fallback(fallbackMethod = "onFailureBackend")
-    private JsonObject callBackend(String name, SecurityContext context) {
-        return target.path(name)
+        return target
+                .path(name)
                 .request()
                 .header("Host", "localhost:8080")
                 .property(ClientSecurityFeature.PROPERTY_CONTEXT, context)
                 .get(JsonObject.class);
     }
 
-    public JsonObject onFailureBackend(String name, SecurityContext context) {
+    public JsonObject onFailureOutbound(String name,
+                                        SecurityContext context) {
         return Json.createObjectBuilder().add("Failed", name).build();
     }
 
