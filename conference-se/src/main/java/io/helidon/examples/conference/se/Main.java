@@ -32,6 +32,7 @@ import io.helidon.config.Config;
 import io.helidon.config.PollingStrategies;
 import io.helidon.health.HealthSupport;
 import io.helidon.health.checks.HealthChecks;
+import io.helidon.media.jsonp.server.JsonSupport;
 import io.helidon.metrics.MetricsSupport;
 import io.helidon.security.CompositeProviderFlag;
 import io.helidon.security.CompositeProviderSelectionPolicy;
@@ -49,7 +50,6 @@ import io.helidon.tracing.TracerBuilder;
 import io.helidon.webserver.Routing;
 import io.helidon.webserver.ServerConfiguration;
 import io.helidon.webserver.WebServer;
-import io.helidon.webserver.json.JsonSupport;
 
 import org.eclipse.microprofile.health.HealthCheckResponse;
 
@@ -169,7 +169,7 @@ public final class Main {
     }
 
     static void setupMetrics(Config config, Routing.Builder routing) {
-        routing.register(MetricsSupport.create());
+        routing.register(MetricsSupport.create(config));
     }
 
     private static void setupTracing(Config config,
@@ -223,16 +223,27 @@ public final class Main {
         WebServer server = WebServer.create(serverConfig, routing);
 
         // Start the server and print some info.
-        server.start().thenAccept(ws -> {
-            System.out.println(
-                    "WEB server is up! http://localhost:" + ws.port() + "/greet");
-        });
-
-        // Server threads are not demon. NO need to block. Just react.
-        server.whenShutdown().thenRun(()
-                                              -> System.out.println("WEB server is DOWN. Good bye!"));
+        server.start()
+                .thenAccept(Main::onStartup)
+                .exceptionally(Main::onStartupFailed);
 
         return server;
+    }
+
+    private static Void onStartupFailed(Throwable t) {
+        System.out.println("Startup failed: " + t.getMessage());
+        t.printStackTrace();
+        return null;
+    }
+
+    private static void onStartup(WebServer ws) {
+        System.out.println(
+                "WEB server is up! http://localhost:" + ws.port() + "/greet");
+        ws.whenShutdown().thenAccept(Main::onShutdown);
+    }
+
+    private static void onShutdown(WebServer ws) {
+        System.out.println("WEB server is DOWN. Good bye!");
     }
 
     /**

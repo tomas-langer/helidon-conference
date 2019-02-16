@@ -62,6 +62,7 @@ public final class Main {
     protected static Server startServer() throws IOException {
         // Server will automatically pick up configuration from
         // microprofile-config.properties
+
         return Server.builder()
                 .config(buildConfig())
                 .build()
