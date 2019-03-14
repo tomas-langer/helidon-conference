@@ -58,8 +58,12 @@ Each application opens a few endpoints that return JSON messages.
 # Tracing
 
 To see traces of the calls, I use Zipkin tracer. To replicate the same behavior, simply 
-start zipkin docker image:
+start Zipkin docker image:
 
+First time:
+`docker run -d -p 9411:9411 openzipkin/zipkin`
+
+If Zipkin is already installed:
 `docker start zipkin`
 
 This command will start "Zipkin" on default host and port. If you have Zipkin running on a

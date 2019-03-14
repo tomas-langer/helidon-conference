@@ -33,7 +33,7 @@
 
     <properties>
         <!-- Default package. Will be overridden by Maven archetype -->
-        <package>io.helidon.examples.conference.mp</package>
+        <package>io.helidon.examples.conference.se</package>
         <mainClass>io.helidon.examples.conference.se.Main</mainClass>
         <argLine>-Dfile.encoding=UTF-8</argLine>
     </properties>
@@ -101,8 +101,30 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.helidon.bundles</groupId>
-            <artifactId>helidon-bundles-webserver</artifactId>
+            <groupId>io.helidon.webserver</groupId>
+            <artifactId>helidon-webserver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.helidon.media.jsonp</groupId>
+            <artifactId>helidon-media-jsonp-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.helidon.config</groupId>
+            <artifactId>helidon-config-yaml</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>io.helidon.metrics</groupId>
+            <artifactId>helidon-metrics</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.helidon.health</groupId>
+            <artifactId>helidon-health</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.helidon.health</groupId>
+            <artifactId>helidon-health-checks</artifactId>
         </dependency>
         <dependency>
             <groupId>io.helidon.tracing</groupId>
@@ -124,22 +146,7 @@
             <groupId>io.helidon.security.providers</groupId>
             <artifactId>helidon-security-providers-http-sign</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.helidon.metrics</groupId>
-            <artifactId>helidon-metrics</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.helidon.health</groupId>
-            <artifactId>helidon-health</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.helidon.health</groupId>
-            <artifactId>helidon-health-checks</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.helidon.config</groupId>
-            <artifactId>helidon-config-yaml</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>

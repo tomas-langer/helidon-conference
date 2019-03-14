@@ -40,7 +40,6 @@
 
     <build>
         <finalName>${project.artifactId}</finalName>
-
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -138,6 +137,7 @@
             <groupId>io.helidon.security.providers</groupId>
             <artifactId>helidon-security-providers-abac</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.helidon.microprofile.tracing</groupId>
             <artifactId>helidon-microprofile-tracing</artifactId>
@@ -145,16 +145,6 @@
         <dependency>
             <groupId>io.helidon.tracing</groupId>
             <artifactId>helidon-tracing-zipkin</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.helidon.microprofile.metrics</groupId>
-            <artifactId>helidon-microprofile-metrics</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.helidon.microprofile.health</groupId>
-            <artifactId>helidon-microprofile-health</artifactId>
-            <version>${helidon.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.activation</groupId>

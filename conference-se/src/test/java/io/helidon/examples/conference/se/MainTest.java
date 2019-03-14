@@ -26,6 +26,7 @@ import javax.json.JsonReader;
 
 import io.helidon.config.Config;
 import io.helidon.webserver.Routing;
+import io.helidon.webserver.ServerConfiguration;
 import io.helidon.webserver.WebServer;
 
 import org.junit.jupiter.api.AfterAll;
@@ -43,7 +44,7 @@ public class MainTest {
         Routing.Builder builder = Routing.builder();
         Main.setupMetrics(config, builder);
         Main.addRouting(config, builder);
-        webServer = Main.startServer(config, builder);
+        webServer = Main.startServer(config, ServerConfiguration.create(config.get("server")), builder);
         while (!webServer.isRunning()) {
             Thread.sleep(1 * 1000);
         }

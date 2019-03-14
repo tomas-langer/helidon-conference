@@ -63,6 +63,7 @@ public class GreetService implements Service {
     public GreetService(Config config) {
         Config greetingConf = config.get(CONFIG_KEY_GREETING);
         this.greeting = greetingConf.asString().orElse(DEFAULT_GREETING);
+
         RegistryFactory metricsRegistry = RegistryFactory.getRegistryFactory().get();
         MetricRegistry appRegistry = metricsRegistry.getRegistry(MetricRegistry.Type.APPLICATION);
 

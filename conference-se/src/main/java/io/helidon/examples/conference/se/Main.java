@@ -17,17 +17,14 @@
 package io.helidon.examples.conference.se;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.LogManager;
 
+import io.helidon.common.CollectionsHelper;
 import io.helidon.config.Config;
 import io.helidon.config.PollingStrategies;
 import io.helidon.health.HealthSupport;
@@ -86,24 +83,34 @@ public final class Main {
 
         Config config = buildConfig();
 
+        // server host and port
         ServerConfiguration.Builder serverConfig = setupServerConfig(config);
-        Routing.Builder routing = Routing.builder();
-
+        // tracer
         setupTracing(config, serverConfig);
+
+        /*
+         * Routing configuration
+         */
+        Routing.Builder routing = Routing.builder();
         setupMetrics(config, routing);
         setupSecurity(config, routing);
         setupHealth(config, routing);
 
+        // the business logic configuration
         addRouting(config, routing);
-        startServer(config, routing);
+
+        // and run it!
+        startServer(config, serverConfig.build(), routing);
     }
 
-    private static ServerConfiguration.Builder setupServerConfig(Config config) throws UnknownHostException {
-        //return ServerConfiguration.builder(config.get("server"));
+    private static ServerConfiguration.Builder setupServerConfig(Config config) {
+        return ServerConfiguration.builder(config.get("server"));
 
-        return ServerConfiguration.builder()
+        /*return ServerConfiguration.builder()
                 .bindAddress(InetAddress.getLocalHost())
                 .port(8080);
+
+         */
     }
 
     private static void setupSecurity(Config config, Routing.Builder routing) {
@@ -141,7 +148,7 @@ public final class Main {
                 .optional(true)
                 .inboundRequiredHeaders(SignedHeadersConfig.builder()
                                                 .config("get",
-                                                        SignedHeadersConfig.HeadersConfig.create(List.of(
+                                                        SignedHeadersConfig.HeadersConfig.create(CollectionsHelper.listOf(
                                                                 "date",
                                                                 "(request-target)",
                                                                 "host")))
@@ -212,14 +219,8 @@ public final class Main {
      * Start the server.
      *
      * @return the created {@link WebServer} instance
-     * @throws IOException if there are problems reading logging properties
      */
-    protected static WebServer startServer(Config config, Routing.Builder routing) throws IOException {
-
-        // Get webserver config from the "server" section of application.yaml
-        ServerConfiguration serverConfig =
-                ServerConfiguration.create(config.get("server"));
-
+    static WebServer startServer(Config config, ServerConfiguration serverConfig, Routing.Builder routing) {
         WebServer server = WebServer.create(serverConfig, routing);
 
         // Start the server and print some info.
@@ -271,7 +272,7 @@ public final class Main {
 
         @Override
         public Collection<String> roles() {
-            return Set.of(role);
+            return CollectionsHelper.setOf(role);
         }
 
         @Override

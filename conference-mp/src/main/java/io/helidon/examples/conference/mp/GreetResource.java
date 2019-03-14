@@ -101,7 +101,6 @@ public class GreetResource {
 
     @GET
     @Path("/outbound/{name}")
-    @Timed
     @Fallback(fallbackMethod = "onFailureOutbound")
     public JsonObject outbound(@PathParam("name") String name,
                                @Context SecurityContext context) {
