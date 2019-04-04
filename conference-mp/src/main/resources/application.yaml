@@ -18,6 +18,7 @@
 
 tracing:
   service: "helidon-mp"
+  protocol: "http"
 
 health:
   exclude: "heapMemory"

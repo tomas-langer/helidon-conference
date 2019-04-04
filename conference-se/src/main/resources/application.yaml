@@ -22,6 +22,7 @@ health:
 
 tracing:
   service: "helidon-se"
+  protocol: "http"
 
 server:
   port: 8080
