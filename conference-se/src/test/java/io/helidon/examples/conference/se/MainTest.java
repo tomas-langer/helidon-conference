@@ -67,14 +67,14 @@ public class MainTest {
         Assertions.assertEquals(200, conn.getResponseCode(), "HTTP response1");
         JsonReader jsonReader = Json.createReader(conn.getInputStream());
         JsonObject jsonObject = jsonReader.readObject();
-        Assertions.assertEquals("Hello World!", jsonObject.getString("message"),
+        Assertions.assertEquals("Hello (Hello) World!", jsonObject.getString("message"),
                                 "default message");
 
         conn = getURLConnection("GET", "/greet/Joe");
         Assertions.assertEquals(200, conn.getResponseCode(), "HTTP response2");
         jsonReader = Json.createReader(conn.getInputStream());
         jsonObject = jsonReader.readObject();
-        Assertions.assertEquals("Hello Joe (security: Anonymous)!", jsonObject.getString("message"),
+        Assertions.assertEquals("Hello (Hello) Joe (security: Anonymous)!", jsonObject.getString("message"),
                                 "hello Joe message");
 
         conn = getURLConnection("PUT", "/greet/greeting/Hola");
@@ -83,7 +83,7 @@ public class MainTest {
         Assertions.assertEquals(200, conn.getResponseCode(), "HTTP response4");
         jsonReader = Json.createReader(conn.getInputStream());
         jsonObject = jsonReader.readObject();
-        Assertions.assertEquals("Hola Jose (security: Anonymous)!", jsonObject.getString("message"),
+        Assertions.assertEquals("Hello (Hola) Jose (security: Anonymous)!", jsonObject.getString("message"),
                                 "hola Jose message");
     }
 
