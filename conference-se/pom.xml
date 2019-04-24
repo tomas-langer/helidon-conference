@@ -112,7 +112,11 @@
             <groupId>io.helidon.config</groupId>
             <artifactId>helidon-config-yaml</artifactId>
         </dependency>
-
+        <dependency>
+            <!-- required by security when configured from configuration -->
+            <groupId>io.helidon.config</groupId>
+            <artifactId>helidon-config-object-mapping</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.helidon.metrics</groupId>

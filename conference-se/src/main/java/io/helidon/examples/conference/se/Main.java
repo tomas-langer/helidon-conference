@@ -114,8 +114,10 @@ public final class Main {
     }
 
     private static void setupSecurity(Config config, Routing.Builder routing) {
-        //Security security = Security.create(config);
-        //routing.register(WebSecurity.create(security, config));
+        /*
+        Security security = Security.create(config.get("security"));
+        routing.register(WebSecurity.create(security, config));
+         */
 
         Security security = Security.builder()
                 .providerSelectionPolicy(selectionPolicy())

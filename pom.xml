@@ -25,7 +25,7 @@
         <copied.libs.dir>${project.build.directory}/${libs.classpath.prefix}</copied.libs.dir>
         <checkstyle.config.location>etc/checkstyle.xml</checkstyle.config.location>
 
-        <helidon.version>1.0.2</helidon.version>
+        <helidon.version>1.0.3</helidon.version>
     </properties>
 
     <dependencyManagement>
