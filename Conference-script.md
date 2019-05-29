@@ -14,7 +14,7 @@ Demo - creating an SE and MP service
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-se \
-    -DarchetypeVersion=1.0.3 \
+    -DarchetypeVersion=1.1.1 \
     -DgroupId=io.helidon.examples \
     -DartifactId=conference-se \
     -Dpackage=io.helidon.examples.conference.se
@@ -23,7 +23,7 @@ mvn archetype:generate -DinteractiveMode=false \
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-mp \
-    -DarchetypeVersion=1.0.3 \
+    -DarchetypeVersion=1.1.1 \
     -DgroupId=io.helidon.examples \
     -DartifactId=conference-mp \
     -Dpackage=io.helidon.examples.conference.mp
