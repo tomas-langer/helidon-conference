@@ -119,8 +119,8 @@ public final class Main {
         MetricsSupport metrics = MetricsSupport.create();
         GreetService greetService = new GreetService(config);
         HealthSupport health = HealthSupport.builder()
-                .add(HealthChecks.healthChecks())   // Adds a convenient set of checks
-                .add(() -> HealthCheckResponse.named("custom") // a custom health check
+                .addLiveness(HealthChecks.healthChecks())   // Adds a convenient set of checks
+                .addLiveness(() -> HealthCheckResponse.named("custom") // a custom health check
                         .up()
                         .withData("timestamp", System.currentTimeMillis())
                         .build())

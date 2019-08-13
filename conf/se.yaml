@@ -39,3 +39,5 @@ security:
       - path: "/greet/{*}"
         authenticate: true
         roles-allowed: ["user", "admin"]
+      - path: "/outbound"
+        authenticate: true

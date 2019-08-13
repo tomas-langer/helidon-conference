@@ -1,3 +1,17 @@
+#server:
+#  port: 8081
+#  host: "localhost"
+#  sockets:
+#    admin:
+#      port: 9081
+#      bind-address: "localhost"
+#
+#metrics:
+#  routing: "admin"
+#
+#health:
+#  routing: "admin"
+
 app:
   greeting: "MP Hallo"
 

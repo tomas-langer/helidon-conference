@@ -19,7 +19,7 @@ Helidon SE - Linux and MacOS
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-se \
-    -DarchetypeVersion=1.1.2 \
+    -DarchetypeVersion=1.2.0 \
     -DgroupId=io.helidon.examples \
     -DartifactId=helidon-quickstart-se \
     -Dpackage=io.helidon.examples.quickstart.se
@@ -30,7 +30,7 @@ Helidon MP - Linux and MacOS
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-mp \
-    -DarchetypeVersion=1.1.2 \
+    -DarchetypeVersion=1.2.0 \
     -DgroupId=io.helidon.examples \
     -DartifactId=helidon-quickstart-mp \
     -Dpackage=io.helidon.examples.quickstart.mp
@@ -334,14 +334,25 @@ In a similar way, we could use most of the metrics from MP Metrics specification
 
 
 ## 7. Health Checks
-Health checks are already enabled in both projects:
- 
+Health checks are already enabled in both projects. 
+
+Original MP Health endpoints (all healthchecks available): 
+
 http://localhost:8080/health
 
 http://localhost:8081/health
 
-Let's add custom health check to our applications.
+New MP Health endpoints (empty for now):
 
+Readiness checks:
+http://localhost:8080/health/ready
+http://localhost:8081/health/ready
+
+Liveness checks:
+http://localhost:8080/health/live
+http://localhost:8081/health/live
+
+Let's add custom health check to our applications.
 
 ### MP Health Check
 Adding a custom health check in MP utilizes CDI. 
@@ -353,11 +364,11 @@ package io.helidon.examples.quickstart.mp;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.health.Health;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
+import org.eclipse.microprofile.health.Liveness;
 
-@Health
+@Liveness
 @ApplicationScoped
 public class GreetHealthcheck implements HealthCheck {
  private GreetingProvider provider;
@@ -384,7 +395,9 @@ the update greeting endpoint (that changes the greeting in memory):
 
 `curl -i -X PUT -H "Content-Type: application/json" -d '{"greeting": "Hello"}' http://localhost:8081/greet/greeting`
 
-The next request to health endpoint should return `UP`
+The next request to health endpoint should return `UP`.
+Our new health check also provides its result in the liveness checks on
+http://localhost:8081/health/live
 
 ### SE Health Check
 Custom health checks may be added when creating the `HealthSupport` instance
@@ -394,8 +407,8 @@ Let's add a health check that is always up and just sends the current time in mi
 
 ```java
 HealthSupport health = HealthSupport.builder()
-        .add(HealthChecks.healthChecks())   // Adds a convenient set of checks
-        .add(() -> HealthCheckResponse.named("custom") // a custom health check
+        .addLiveness(HealthChecks.healthChecks())   // Adds a convenient set of checks
+        .addLiveness(() -> HealthCheckResponse.named("custom") // a custom (liveness) health check
                 .up()
                 .withData("timestamp", System.currentTimeMillis())
                 .build())
@@ -404,9 +417,13 @@ HealthSupport health = HealthSupport.builder()
 
 Restart the application and verify the health endpoint, that it contains the 
 new health check.
+As we have added all the health checks to liveness, we can also see them in
+http://localhost:8080/health/live
 
 
 ## 8. Connect the services
+
+### MP HTTP client
 We will use a JAX-RS client to connect from our MP service to the SE service.
 
 Let's modify the `GreetResource`.
@@ -450,30 +467,93 @@ content-length: 28
 {"message":"SE Hallo jack!"}%
 ```
 
-## 9. Tracing
-To use tracing with Helidon, we need to connect the services to a tracer.
-Helidon supports "Zipkin" and "Jaeger" tracers.
-For our examples, we will use Zipkin, as it works without issues with GraalVM native-image (that we use further down).
-
-To use Zipkin tracer, please start the Zipkin docker image.
-
-If this is the first time you use Zipkin:
-`docker run -d --name zipkin -p 9411:9411 openzipkin/zipkin`
-
-If you already have the container ready:
-`docker start zipkin`
-
-### Add Zipkin tracer to MP
-We need to add two libraries to `pom.xml`:
+### SE HTTP Client
+We have a choice for Helidon SE of using the HTTP client in Java (available since version 11), or any reactive/asynchronous
+HTTP client.
+For our example we will use JAX-RS reactive client from Jersey.
+This adds a few dependencies to our project:
 
 ```xml
 <dependency>
-    <groupId>io.helidon.microprofile.tracing</groupId>
-    <artifactId>helidon-microprofile-tracing</artifactId>
+    <groupId>io.helidon.security.integration</groupId>
+    <artifactId>helidon-security-integration-jersey</artifactId>
 </dependency>
 <dependency>
     <groupId>io.helidon.tracing</groupId>
-    <artifactId>helidon-tracing-zipkin</artifactId>
+    <artifactId>helidon-tracing-jersey-client</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.glassfish.jersey.core</groupId>
+    <artifactId>jersey-client</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.glassfish.jersey.inject</groupId>
+    <artifactId>jersey-hk2</artifactId>
+</dependency>
+```
+
+Let's add a new routing method to our `GreetService` in `update(Rules)` method:
+```java
+.get("/outbound", this::outbound)
+``` 
+
+And create the outbound method itself:
+```java
+private void outbound(ServerRequest request, ServerResponse response) {
+    Invocation.Builder requestBuilder = webTarget.request();
+
+    // propagate security if defined
+    request.context()
+            .get(SecurityContext.class)
+            .ifPresent(ctx -> requestBuilder.property(ClientSecurityFeature.PROPERTY_CONTEXT, ctx));
+
+    // propagate tracing
+    requestBuilder.property(ClientTracingFilter.CURRENT_SPAN_CONTEXT_PROPERTY_NAME, request.spanContext());
+
+    // and reactive jersey client call
+    requestBuilder.rx()
+            .get(String.class)
+            .thenAccept(response::send)
+            .exceptionally(throwable -> {
+                // process exception
+                response.status(Http.Status.INTERNAL_SERVER_ERROR_500);
+                response.send("Failed with: " + throwable);
+                return null;
+            });
+}
+```
+
+## 9. Tracing
+
+_In version 1.2.0 we have an unfortunate bug with Helidon MP and Zipkin tracer. Please use Jaeger tracing with MP if you
+    want to try this feature. For Helidon SE, you can safely use Zipkin to use GraalVM native-image_
+    
+Even when using Zipkin integration in Helidon, we can use Jaeger server, as it also accepts spans in Zipkin format on the same
+    port as Zipkin.
+
+To use tracing with Helidon, we need to connect the services to a tracer.
+Helidon supports "Zipkin" and "Jaeger" tracers.
+For our examples, we will use Jaeger server, in MP Jaeger integration and in SE
+ Zipkin integration as it works without issues with GraalVM native-image (that we use further down).
+
+To use Jaeger tracer, please start the Jaeger docker image.
+
+If this is the first time you use Jaeger:
+`  docker run -d --name jaeger -e COLLECTOR_ZIPKIN_HTTP_PORT=9411 -p 5775:5775/udp -p 6831:6831/udp -p 6832:6832/udp -p 5778:5778 -p 16686:16686 -p 14268:14268 -p 9411:9411 jaegertracing/all-in-one:latest`
+
+If you already have the container ready:
+`docker start jaeger`
+
+The Jaeger UI is available on:
+http://localhost:16686/search
+
+### Add Jaeger tracer to MP
+We need to add the integration library to `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>io.helidon.tracing</groupId>
+    <artifactId>helidon-tracing-jaeger</artifactId>
 </dependency>
 ```
 
@@ -749,3 +829,31 @@ Dependencies:
 ```
 
 In SE, we need to explicitly add Security to configuration:
+
+## Running on multiple ports (MP)
+
+Helidon WebServer has the concept of named ports that can have routings assigned to them. 
+In Helidon MP, we can run our main application on the default port (all JAX-RS resources) and assign some of the
+MP "management" endpoints to different ports.
+The following configuration (you can add this to `conf/mp.yaml`) will move metrics and health check endpoints to port
+    `9081` (this is commented out in the file in this project, so previous examples work nicely)
+     
+```yaml
+server:
+  port: 8081
+  host: "localhost"
+  sockets:
+    admin:
+      port: 9081
+      bind-address: "localhost"
+
+metrics:
+  routing: "admin"
+
+health:
+  routing: "admin"
+```
+
+After restarting the MP server, you can find metrics and health on the following endpoints:
+http://localhost:9081/health
+http://localhost:9081/metrics

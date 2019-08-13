@@ -3,11 +3,11 @@ package io.helidon.examples.quickstart.mp;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.health.Health;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
+import org.eclipse.microprofile.health.Liveness;
 
-@Health
+@Liveness
 @ApplicationScoped
 public class GreetHealthcheck implements HealthCheck {
     private GreetingProvider provider;

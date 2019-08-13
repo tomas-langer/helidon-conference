@@ -29,7 +29,7 @@
     <name>${project.artifactId}</name>
 
     <properties>
-        <helidon.version>1.1.2</helidon.version>
+        <helidon.version>1.2.0</helidon.version>
         <helidon.plugin.version>1.0.10</helidon.plugin.version>
         <mainClass>io.helidon.examples.quickstart.se.Main</mainClass>
         <exec.mainClass>${mainClass}</exec.mainClass>
@@ -193,6 +193,24 @@
             <groupId>io.helidon.config</groupId>
             <artifactId>helidon-config-object-mapping</artifactId>
         </dependency>
+        <!-- outbound call - jersey client -->
+        <dependency>
+            <groupId>io.helidon.security.integration</groupId>
+            <artifactId>helidon-security-integration-jersey</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.helidon.tracing</groupId>
+            <artifactId>helidon-tracing-jersey-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.core</groupId>
+            <artifactId>jersey-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.inject</groupId>
+            <artifactId>jersey-hk2</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>

@@ -23,10 +23,17 @@ import java.util.function.Consumer;
 import javax.json.Json;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
 
 import io.helidon.common.http.Http;
 import io.helidon.config.Config;
 import io.helidon.metrics.RegistryFactory;
+import io.helidon.security.SecurityContext;
+import io.helidon.security.integration.jersey.ClientSecurityFeature;
+import io.helidon.tracing.jersey.client.ClientTracingFilter;
 import io.helidon.webserver.Routing;
 import io.helidon.webserver.ServerRequest;
 import io.helidon.webserver.ServerResponse;
@@ -59,6 +66,7 @@ public class GreetService implements Service {
 
     private static final JsonBuilderFactory JSON = Json.createBuilderFactory(Collections.emptyMap());
     private final Timer defaultMessageTimer;
+    private final WebTarget webTarget;
 
     GreetService(Config config) {
         Config greetingConfig = config.get("app.greeting");
@@ -71,6 +79,12 @@ public class GreetService implements Service {
         RegistryFactory metricsRegistry = RegistryFactory.getInstance();
         MetricRegistry appRegistry = metricsRegistry.getRegistry(MetricRegistry.Type.APPLICATION);
         this.defaultMessageTimer = appRegistry.timer("greet.default.timer");
+
+        Client jaxRsClient = ClientBuilder.newBuilder()
+                .register(new ClientSecurityFeature())
+                .build();
+
+        this.webTarget = jaxRsClient.target("http://localhost:8081/greet");
     }
 
     /**
@@ -80,9 +94,34 @@ public class GreetService implements Service {
     @Override
     public void update(Routing.Rules rules) {
         rules
-            .get("/", this::getDefaultMessageHandler)
-            .get("/{name}", this::getMessageHandler)
-            .put("/greeting", this::updateGreetingHandler);
+                .get("/", this::getDefaultMessageHandler)
+                .get("/outbound", this::outbound)
+                .get("/{name}", this::getMessageHandler)
+                .put("/greeting", this::updateGreetingHandler);
+
+    }
+
+    private void outbound(ServerRequest request, ServerResponse response) {
+        Invocation.Builder requestBuilder = webTarget.request();
+
+        // propagate security if defined
+        request.context()
+                .get(SecurityContext.class)
+                .ifPresent(ctx -> requestBuilder.property(ClientSecurityFeature.PROPERTY_CONTEXT, ctx));
+
+        // propagate tracing
+        requestBuilder.property(ClientTracingFilter.CURRENT_SPAN_CONTEXT_PROPERTY_NAME, request.spanContext());
+
+        // and reactive jersey client call
+        requestBuilder.rx()
+                .get(String.class)
+                .thenAccept(response::send)
+                .exceptionally(throwable -> {
+                    // process exception
+                    response.status(Http.Status.INTERNAL_SERVER_ERROR_500);
+                    response.send("Failed with: " + throwable);
+                    return null;
+                });
     }
 
     /**
@@ -91,11 +130,11 @@ public class GreetService implements Service {
      * @param response the server response
      */
     private void getDefaultMessageHandler(ServerRequest request,
-                                   ServerResponse response) {
+                                          ServerResponse response) {
         Timer.Context timerContext = defaultMessageTimer.time();
         sendResponse(response, "World");
         response.whenSent()
-            .thenAccept(res -> timerContext.stop());
+                .thenAccept(res -> timerContext.stop());
     }
 
     /**
@@ -104,7 +143,7 @@ public class GreetService implements Service {
      * @param response the server response
      */
     private void getMessageHandler(ServerRequest request,
-                            ServerResponse response) {
+                                   ServerResponse response) {
         String name = request.path().param("name");
         sendResponse(response, name);
     }
