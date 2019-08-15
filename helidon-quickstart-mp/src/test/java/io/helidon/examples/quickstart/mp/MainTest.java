@@ -26,6 +26,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import io.helidon.microprofile.server.Server;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -48,15 +49,15 @@ class MainTest {
                 .target(getConnectionString("/greet"))
                 .request()
                 .get(JsonObject.class);
-        Assertions.assertEquals("Hello World!", jsonObject.getString("message"),
-                "default message");
+        Assertions.assertEquals("MP Hallo World!", jsonObject.getString("message"),
+                                "default message");
 
         jsonObject = client
                 .target(getConnectionString("/greet/Joe"))
                 .request()
                 .get(JsonObject.class);
-        Assertions.assertEquals("Hello Joe!", jsonObject.getString("message"),
-                "hello Joe message");
+        Assertions.assertEquals("MP Hallo Joe!", jsonObject.getString("message"),
+                                "hello Joe message");
 
         Response r = client
                 .target(getConnectionString("/greet/greeting"))
@@ -81,7 +82,7 @@ class MainTest {
                 .target(getConnectionString("/health"))
                 .request()
                 .get();
-        Assertions.assertEquals(200, r.getStatus(), "GET health status code");
+        Assertions.assertEquals(503, r.getStatus(), "GET health status code. Should fail.");
     }
 
     @AfterAll

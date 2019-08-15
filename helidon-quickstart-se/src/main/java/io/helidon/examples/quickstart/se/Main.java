@@ -101,7 +101,8 @@ public final class Main {
     private static Config buildConfig() {
         return Config.builder()
                 .sources(
-                        file("conf/se.yaml")
+                        classpath("se-test.yaml").optional(),
+                        file("../conf/se.yaml")
                                 .pollingStrategy(PollingStrategies::watch)
                                 .optional(),
                         classpath("application.yaml"))

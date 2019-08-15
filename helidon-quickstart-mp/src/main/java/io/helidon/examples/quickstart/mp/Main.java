@@ -70,7 +70,7 @@ public final class Main {
     private static Config buildConfig() {
         return Config.builder()
                 .sources(
-                        file("conf/mp.yaml")
+                        file("../conf/mp.yaml")
                                 .pollingStrategy(PollingStrategies::watch)
                                 .optional(),
                         classpath("application.yaml").optional(),
