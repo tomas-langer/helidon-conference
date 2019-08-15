@@ -78,6 +78,12 @@ class MainTest {
         Assertions.assertEquals(200, r.getStatus(), "GET metrics status code");
 
         r = client
+            .target(getConnectionString("/greet/greeting"))
+            .request()
+            .put(Entity.entity("{\"greeting\" : \"Hello\"}", MediaType.APPLICATION_JSON));
+
+
+        r = client
                 .target(getConnectionString("/health"))
                 .request()
                 .get();
