@@ -27,20 +27,3 @@ server:
 
 tracing:
   service: "helidon-se"
-
-security:
-  providers:
-    # enable the "ABAC" security provider (also handles RBAC)
-    - abac:
-    # enabled the HTTP Basic authentication provider
-    - http-basic-auth:
-        realm: "helidon"
-        users:
-          - login: "jack"
-            password: "password"
-            roles: ["admin"]
-          - login: "jill"
-            password: "password"
-            roles: ["user"]
-          - login: "joe"
-            password: "password"
