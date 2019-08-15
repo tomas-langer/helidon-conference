@@ -84,6 +84,13 @@ class MainTest {
 
 
         r = client
+            .target(getConnectionString("/greet/greeting"))
+            .request()
+            .put(Entity.entity("{\"greeting\" : \"Hello\"}", MediaType.APPLICATION_JSON));
+        Assertions.assertEquals(204, r.getStatus(), "PUT status code");
+
+
+        r = client
                 .target(getConnectionString("/health"))
                 .request()
                 .get();
