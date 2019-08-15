@@ -492,6 +492,22 @@ This adds a few dependencies to our project:
 </dependency>
 ```
 
+Add a `WebTarget` to the `GreetService`:
+
+```
+private WebTarget webTarget;
+```
+
+Update the constuctor to set up the client and configure the `WebTarget`:
+
+```
+Client jaxRsClient = ClientBuilder.newBuilder()
+        .register(new ClientSecurityFeature())
+        .build();
+
+webTarget = jaxRsClient.target("http://localhost:8081/greet");
+```
+
 Let's add a new routing method to our `GreetService` in `update(Rules)` method:
 ```java
 .get("/outbound", this::outbound)
