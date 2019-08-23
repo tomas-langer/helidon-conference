@@ -40,7 +40,6 @@ import io.helidon.security.annotations.Authenticated;
 import io.helidon.security.integration.jersey.ClientSecurityFeature;
 import io.helidon.security.integration.jersey.SecureClient;
 
-import org.eclipse.microprofile.faulttolerance.Fallback;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.glassfish.jersey.server.Uri;
 
@@ -113,7 +112,7 @@ public class GreetResource {
 
     @GET
     @Path("/outbound")
-    @Fallback(fallbackMethod = "outboundFailed")
+    //@Fallback(fallbackMethod = "outboundFailed")
     @RolesAllowed({"user", "admin"})
     @Authenticated
     public JsonObject outbound(@Context SecurityContext context) {

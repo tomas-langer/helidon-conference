@@ -29,7 +29,7 @@
     <name>${project.artifactId}</name>
 
     <properties>
-        <helidon.version>1.2.0</helidon.version>
+        <helidon.version>1.2.1</helidon.version>
         <helidon.plugin.version>1.0.10</helidon.plugin.version>
         <mainClass>io.helidon.examples.quickstart.se.Main</mainClass>
         <exec.mainClass>${mainClass}</exec.mainClass>
@@ -188,10 +188,6 @@
         <dependency>
             <groupId>io.helidon.security.providers</groupId>
             <artifactId>helidon-security-providers-http-sign</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.helidon.config</groupId>
-            <artifactId>helidon-config-object-mapping</artifactId>
         </dependency>
         <!-- outbound call - jersey client -->
         <dependency>

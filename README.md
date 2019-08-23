@@ -19,7 +19,7 @@ Helidon SE - Linux and MacOS
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-se \
-    -DarchetypeVersion=1.2.0 \
+    -DarchetypeVersion=1.2.1 \
     -DgroupId=io.helidon.examples \
     -DartifactId=helidon-quickstart-se \
     -Dpackage=io.helidon.examples.quickstart.se
@@ -30,7 +30,7 @@ Helidon MP - Linux and MacOS
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-mp \
-    -DarchetypeVersion=1.2.0 \
+    -DarchetypeVersion=1.2.1 \
     -DgroupId=io.helidon.examples \
     -DartifactId=helidon-quickstart-mp \
     -Dpackage=io.helidon.examples.quickstart.mp
@@ -479,7 +479,9 @@ content-length: 28
 ### SE HTTP Client
 We have a choice for Helidon SE of using the HTTP client in Java (available since version 11), or any reactive/asynchronous
 HTTP client.
+
 For our example we will use JAX-RS reactive client from Jersey.
+_This step will prevent us from doing the GraalVM `native-image` example, as Jersey client is not supported by it_
 This adds a few dependencies to our project:
 
 ```xml
@@ -550,35 +552,26 @@ private void outbound(ServerRequest request, ServerResponse response) {
 
 ## 9. Tracing
 
-_In version 1.2.0 we have an unfortunate bug with Helidon MP and Zipkin tracer. Please use Jaeger tracing with MP if you
-    want to try this feature. For Helidon SE, you can safely use Zipkin to use GraalVM native-image_
-    
-Even when using Zipkin integration in Helidon, we can use Jaeger server, as it also accepts spans in Zipkin format on the same
-    port as Zipkin.
-
 To use tracing with Helidon, we need to connect the services to a tracer.
 Helidon supports "Zipkin" and "Jaeger" tracers.
-For our examples, we will use Jaeger server, in MP Jaeger integration and in SE
- Zipkin integration as it works without issues with GraalVM native-image (that we use further down).
+For our examples, we will use Zipkin server.
 
-To use Jaeger tracer, please start the Jaeger docker image.
-
-If this is the first time you use Jaeger:
-`  docker run -d --name jaeger -e COLLECTOR_ZIPKIN_HTTP_PORT=9411 -p 5775:5775/udp -p 6831:6831/udp -p 6832:6832/udp -p 5778:5778 -p 16686:16686 -p 14268:14268 -p 9411:9411 jaegertracing/all-in-one:latest`
+If this is the first time you use Zipkin:
+`docker run -d --name zipkin -p 9411:9411 openzipkin/zipkin`
 
 If you already have the container ready:
-`docker start jaeger`
+`docker start zipkin`
 
-The Jaeger UI is available on:
-http://localhost:16686/search
+The Zipkin UI is available on:
+http://localhost:9411/zipkin/
 
-### Add Jaeger tracer to MP
+### Add Zipkin tracer to MP
 We need to add the integration library to `pom.xml`:
 
 ```xml
 <dependency>
     <groupId>io.helidon.tracing</groupId>
-    <artifactId>helidon-tracing-jaeger</artifactId>
+    <artifactId>helidon-tracing-zipkin</artifactId>
 </dependency>
 ```
 
@@ -676,6 +669,9 @@ is capable of compilation using `native-image`.
 There are two options:
 1. Compile using local installation of GraalVM
 2. Compile using docker image into a docker image
+
+_To use `native-image`, please comment out JAX-RS client usage in our SE application - Jersey client is currently
+    not supported with `native-image`_
 
 We will use the second approach.
 Start in the directory of the SE service:
