@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019 Oracle and/or its affiliates. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.helidon.examples.quickstart.mp;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.logging.LogManager;
 
 import io.helidon.config.Config;
@@ -82,8 +83,8 @@ public final class Main {
      * Configure logging from logging.properties file.
      */
     private static void setupLogging() throws IOException {
-        // load logging configuration
-        LogManager.getLogManager().readConfiguration(
-                Main.class.getResourceAsStream("/logging.properties"));
+        try (InputStream is = Main.class.getResourceAsStream("/logging.properties")) {
+            LogManager.getLogManager().readConfiguration(is);
+        }
     }
 }

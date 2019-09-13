@@ -38,8 +38,8 @@ import javax.ws.rs.core.Response;
 import io.helidon.security.SecurityContext;
 import io.helidon.security.annotations.Authenticated;
 import io.helidon.security.integration.jersey.ClientSecurityFeature;
-import io.helidon.security.integration.jersey.SecureClient;
 
+import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.glassfish.jersey.server.Uri;
 
@@ -69,7 +69,6 @@ public class GreetResource {
     private final GreetingProvider greetingProvider;
 
     @Uri("http://localhost:8080/greet")
-    @SecureClient
     private WebTarget target;
 
     /**
@@ -92,6 +91,7 @@ public class GreetResource {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Timed
+    @Counted(name = "counter")
     public JsonObject getDefaultMessage() {
         return createResponse("World");
     }

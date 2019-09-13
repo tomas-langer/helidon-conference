@@ -19,7 +19,7 @@ Helidon SE - Linux and MacOS
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-se \
-    -DarchetypeVersion=1.2.1 \
+    -DarchetypeVersion=1.3.0 \
     -DgroupId=io.helidon.examples \
     -DartifactId=helidon-quickstart-se \
     -Dpackage=io.helidon.examples.quickstart.se
@@ -30,7 +30,7 @@ Helidon MP - Linux and MacOS
 mvn archetype:generate -DinteractiveMode=false \
     -DarchetypeGroupId=io.helidon.archetypes \
     -DarchetypeArtifactId=helidon-quickstart-mp \
-    -DarchetypeVersion=1.2.1 \
+    -DarchetypeVersion=1.3.0 \
     -DgroupId=io.helidon.examples \
     -DartifactId=helidon-quickstart-mp \
     -Dpackage=io.helidon.examples.quickstart.mp
@@ -351,7 +351,7 @@ http://localhost:8080/health
 
 http://localhost:8081/health
 
-New MP Health endpoints (empty for now):
+New MP Health endpoints:
 
 Readiness checks:
 http://localhost:8080/health/ready
@@ -442,11 +442,9 @@ Add a web target:
 ```java
 import javax.ws.rs.client.WebTarget;
 import org.glassfish.jersey.server.Uri;
-import io.helidon.security.integration.jersey.SecureClient;
 //...
 
 @Uri("http://localhost:8080/greet")
-@SecureClient
 private WebTarget target;
 ```
 
@@ -481,9 +479,25 @@ We have a choice for Helidon SE of using the HTTP client in Java (available sinc
 HTTP client.
 
 For our example we will use JAX-RS reactive client from Jersey.
-_This step will prevent us from doing the GraalVM `native-image` example, as Jersey client is not supported by it_
-This adds a few dependencies to our project:
 
+This adds a few dependencies to our project.
+Create a `dependencyManagement` node in your `pom.xml`:
+```xml
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.glassfish.jersey</groupId>
+                <artifactId>jersey-bom</artifactId>
+                <version>2.29.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+```
+And then update the `dependencies` node by adding the following dependencies to it:
+
+_These belong under `dependencies` *NOT* under `dependencyManagement/dependencies`_ 
 ```xml
 <dependency>
     <groupId>io.helidon.security.integration</groupId>
@@ -503,42 +517,39 @@ This adds a few dependencies to our project:
 </dependency>
 ```
 
-Add a `WebTarget` to the `GreetService`:
+Add a `Client` and `WebTarget` to the `GreetService`:
+```java
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
+
+//...
+private static final Client JAX_RS_CLIENT = ClientBuilder.newClient();
+
+private final WebTarget webTarget;
+```
+
+Update constructor to configure the `WebTarget`:
 
 ```
-private WebTarget webTarget;
-```
-
-Update the constuctor to set up the client and configure the `WebTarget`:
-
-```
-Client jaxRsClient = ClientBuilder.newBuilder()
-        .register(new ClientSecurityFeature())
-        .build();
-
-webTarget = jaxRsClient.target("http://localhost:8081/greet");
+webTarget = JAX_RS_CLIENT.target("http://localhost:8081/greet");
 ```
 
 Let's add a new routing method to our `GreetService` in `update(Rules)` method:
 ```java
-.get("/outbound", this::outbound)
+rules
+    .get("/", this::getDefaultMessageHandler)
+    .get("/outbound", this::outbound)
+    .get("/{name}", this::getMessageHandler)
+    .put("/greeting", this::updateGreetingHandler);
 ``` 
 
 And create the outbound method itself:
 ```java
 private void outbound(ServerRequest request, ServerResponse response) {
-    Invocation.Builder requestBuilder = webTarget.request();
-
-    // propagate security if defined
-    request.context()
-            .get(SecurityContext.class)
-            .ifPresent(ctx -> requestBuilder.property(ClientSecurityFeature.PROPERTY_CONTEXT, ctx));
-
-    // propagate tracing
-    requestBuilder.property(ClientTracingFilter.CURRENT_SPAN_CONTEXT_PROPERTY_NAME, request.spanContext());
-
     // and reactive jersey client call
-    requestBuilder.rx()
+    webTarget.request()
+            .rx()
             .get(String.class)
             .thenAccept(response::send)
             .exceptionally(throwable -> {
@@ -579,13 +590,9 @@ and we need to configure the tracing service name (let's add it to `microprofile
 `tracing.service=helidon-mp`
 
 ### Add Zipkin tracer to SE
-We need to add the Tracer abstraction and Zipkin integration libraries to `pom.xml`:
+We need to add the Zipkin integration libraries to `pom.xml` (transitively depends on a tracer abstraction library):
 
 ```xml
-<dependency>
-    <groupId>io.helidon.tracing</groupId>
-    <artifactId>helidon-tracing</artifactId>
-</dependency>
 <dependency>
     <groupId>io.helidon.tracing</groupId>
     <artifactId>helidon-tracing-zipkin</artifactId>
@@ -601,7 +608,7 @@ In SE `Main.startServer()`:
 ```java
 ServerConfiguration serverConfig =
         ServerConfiguration.builder(config.get("server"))
-                .tracer(TracerBuilder.create(config.get("tracing")).buildAndRegister())
+                .tracer(TracerBuilder.create(config.get("tracing")).build())
                 .build();
 ``` 
 
@@ -670,9 +677,6 @@ There are two options:
 1. Compile using local installation of GraalVM
 2. Compile using docker image into a docker image
 
-_To use `native-image`, please comment out JAX-RS client usage in our SE application - Jersey client is currently
-    not supported with `native-image`_
-
 We will use the second approach.
 Start in the directory of the SE service:
 ```bash
@@ -689,7 +693,7 @@ To run it locally, shut down SE service and run:
 ## 12. Security
 Recommended approach is to configure security in a configuration file.
 As security requires more complex configuration, using a yaml file
-is recommended.
+is required (unless you prefer very cryptic files).
 
 We will secure our services as follows:
 
@@ -850,6 +854,18 @@ Dependencies:
 ```
 
 In SE, we need to explicitly add Security to configuration:
+*please refer to the source code of this module to enable security in SE*
+
+Then we can add security to WebServer routing in `Main` class, method `createRouting`:
+```java
+return Routing.builder()
+    .register(JsonSupport.create())
+    .register(WebSecurity.create(config.get("security")))
+    .register(health)                   // Health at "/health"
+    .register(metrics)                  // Metrics at "/metrics"
+    .register("/greet", greetService)
+    .build();
+```
 
 ## Running on multiple ports (MP)
 

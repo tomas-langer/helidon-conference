@@ -19,10 +19,16 @@ package io.helidon.examples.quickstart.se;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonBuilderFactory;
+import javax.json.JsonException;
 import javax.json.JsonObject;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
 
 import io.helidon.common.http.Http;
 import io.helidon.config.Config;
@@ -58,9 +64,13 @@ public class GreetService implements Service {
     private final AtomicReference<String> greeting = new AtomicReference<>();
 
     private static final JsonBuilderFactory JSON = Json.createBuilderFactory(Collections.emptyMap());
+
+    private static final Logger LOGGER = Logger.getLogger(GreetService.class.getName());
+
+    private static final Client JAX_RS_CLIENT = ClientBuilder.newClient();
+
     private final Timer defaultMessageTimer;
-    //      Outbound is commented out, as we want native image to work
-    //private final WebTarget webTarget;
+    private final WebTarget webTarget;
 
     GreetService(Config config) {
         Config greetingConfig = config.get("app.greeting");
@@ -73,15 +83,28 @@ public class GreetService implements Service {
         RegistryFactory metricsRegistry = RegistryFactory.getInstance();
         MetricRegistry appRegistry = metricsRegistry.getRegistry(MetricRegistry.Type.APPLICATION);
         this.defaultMessageTimer = appRegistry.timer("greet.default.timer");
+        this.webTarget = JAX_RS_CLIENT.target("http://localhost:8081/greet");
+    }
 
-        //      Outbound is commented out, as we want native image to work
-        /*
-        Client jaxRsClient = ClientBuilder.newBuilder()
-                .register(new ClientSecurityFeature())
-                .build();
+    private static <T> T processErrors(Throwable ex, ServerRequest request, ServerResponse response) {
 
-        this.webTarget = jaxRsClient.target("http://localhost:8081/greet");
-         */
+        if (ex.getCause() instanceof JsonException) {
+
+            LOGGER.log(Level.FINE, "Invalid JSON", ex);
+            JsonObject jsonErrorObject = JSON.createObjectBuilder()
+                    .add("error", "Invalid JSON")
+                    .build();
+            response.status(Http.Status.BAD_REQUEST_400).send(jsonErrorObject);
+        } else {
+
+            LOGGER.log(Level.FINE, "Internal error", ex);
+            JsonObject jsonErrorObject = JSON.createObjectBuilder()
+                    .add("error", "Internal error")
+                    .build();
+            response.status(Http.Status.INTERNAL_SERVER_ERROR_500).send(jsonErrorObject);
+        }
+
+        return null;
     }
 
     /**
@@ -92,36 +115,11 @@ public class GreetService implements Service {
     public void update(Routing.Rules rules) {
         rules
                 .get("/", this::getDefaultMessageHandler)
-                //      Outbound is commented out, as we want native image to work
-                //.get("/outbound", this::outbound)
+                .get("/outbound", this::outbound)
                 .get("/{name}", this::getMessageHandler)
                 .put("/greeting", this::updateGreetingHandler);
 
     }
-
-    //      Outbound is commented out, as we want native image to work
-    //    private void outbound(ServerRequest request, ServerResponse response) {
-    //        Invocation.Builder requestBuilder = webTarget.request();
-    //
-    //        // propagate security if defined
-    //        request.context()
-    //                .get(SecurityContext.class)
-    //                .ifPresent(ctx -> requestBuilder.property(ClientSecurityFeature.PROPERTY_CONTEXT, ctx));
-    //
-    //        // propagate tracing
-    //        requestBuilder.property(ClientTracingFilter.CURRENT_SPAN_CONTEXT_PROPERTY_NAME, request.spanContext());
-    //
-    //        // and reactive jersey client call
-    //        requestBuilder.rx()
-    //                .get(String.class)
-    //                .thenAccept(response::send)
-    //                .exceptionally(throwable -> {
-    //                    // process exception
-    //                    response.status(Http.Status.INTERNAL_SERVER_ERROR_500);
-    //                    response.send("Failed with: " + throwable);
-    //                    return null;
-    //                });
-    //    }
 
     /**
      * Return a wordly greeting message.
@@ -156,6 +154,20 @@ public class GreetService implements Service {
         response.send(returnObject);
     }
 
+    private void outbound(ServerRequest request, ServerResponse response) {
+        // and reactive jersey client call
+        webTarget.request()
+                .rx()
+                .get(String.class)
+                .thenAccept(response::send)
+                .exceptionally(throwable -> {
+                    // process exception
+                    response.status(Http.Status.INTERNAL_SERVER_ERROR_500);
+                    response.send("Failed with: " + throwable);
+                    return null;
+                });
+    }
+
     private void updateGreetingFromJson(JsonObject jo, ServerResponse response) {
 
         if (!jo.containsKey("greeting")) {
@@ -178,7 +190,9 @@ public class GreetService implements Service {
      */
     private void updateGreetingHandler(ServerRequest request,
                                        ServerResponse response) {
-        request.content().as(JsonObject.class).thenAccept(jo -> updateGreetingFromJson(jo, response));
+        request.content().as(JsonObject.class)
+                .thenAccept(jo -> updateGreetingFromJson(jo, response))
+                .exceptionally(ex -> processErrors(ex, request, response));
     }
 
 }

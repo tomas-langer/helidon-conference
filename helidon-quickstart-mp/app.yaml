@@ -25,8 +25,8 @@ spec:
   selector:
     app: helidon-quickstart-mp
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8081
+      targetPort: 8081
       name: http
 ---
 kind: Deployment
@@ -46,5 +46,5 @@ spec:
           image: helidon-quickstart-mp
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8080
+            - containerPort: 8081
 ---
